@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 '''
 To test this script, run the following commands in separate terminals:
-- ros2 launch ariac_gazebo ariac.launch.py trial_name:=tutorial
-- ros2 run ariac_tutorials tutorial_1.py
+- ros2 launch ariac_gazebo ariac.launch.py trial_name:=rwa3_spring2024
+- ros2 run rwa3_group_2 orders.py
 '''
 
 import rclpy
