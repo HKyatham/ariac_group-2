@@ -89,6 +89,6 @@ class CheckCompetitionStateInterface(Node):
             if future.result().success:
                 self.get_logger().info('Started competition.')
             else:
-                self.get_logger().warn('Unable to start competition')
+                 self.get_logger().warn('Unable to start competition')
 
     
