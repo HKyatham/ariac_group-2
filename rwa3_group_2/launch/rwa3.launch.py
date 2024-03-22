@@ -27,10 +27,19 @@ def generate_launch_description():
         package="rwa3_group_2",
         executable="orders.py"
     )
+    
+    
+    # Python node submit_order_py.
+    submit_order_py = Node(
+        package="rwa3_group_2",
+        executable="submit_order.py",
+    )
 
     # Adding the nodes to Launch descriptor object.
     #ld.add_action(cmd_line_parameter)
     ld.add_action(check_competition_state_py)
     ld.add_action(orders_py)
+    ld.add_action(submit_order_py)
+
 
     return ld
