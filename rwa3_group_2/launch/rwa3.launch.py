@@ -34,9 +34,6 @@ def generate_launch_description():
                     ],    # parameter file
     )
     
-
-    
-
     # Python node ship_orders_py.
     ship_orders_py = Node(
         package="rwa3_group_2",
@@ -51,6 +48,9 @@ def generate_launch_description():
     submit_order_py = Node(
         package="rwa3_group_2",
         executable="submit_order.py",
+        parameters=[
+                    {"use_sim_time": use_sim_time},
+                    ],    # parameter file
     )
 
     # Adding the nodes to Launch descriptor object.
