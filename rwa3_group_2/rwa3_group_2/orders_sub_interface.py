@@ -64,7 +64,7 @@ class OrderSubInterface(Node):
             self._counter+=1
             self.get_logger().info(f'Inside lowerOrder: {self._counter}')
 
-            if (self._counter%5==0):
+            if (self._counter%15==0):
                 # self.get_logger().info('fullfiimg lower order')
                 poped=self._low_orders.pop(0)
                 self.get_logger().info(f'fullfiimg lower order {poped.id} on AGV number {poped.agv_number}')
@@ -78,7 +78,7 @@ class OrderSubInterface(Node):
             self._h_counter+=1
             self.get_logger().info(f'Inside higerOrder: {self._h_counter}')
 
-            if (self._h_counter%5==0):
+            if (self._h_counter%15==0):
                 # self.get_logger().info('fullfiimg higher order:')
                 poped=self._high_orders.pop(0)
                 self.get_logger().info(f'fullfiimg higher order {poped.id} on AGV number {poped.agv_number}')

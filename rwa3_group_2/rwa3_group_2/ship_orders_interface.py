@@ -18,7 +18,13 @@ class AGVControlClient(Node):
         # self.subscription = self.create_subscription(Order, '/ariac/orders', self.order_callback, 10)
         self.subscription = self.create_subscription(Int32, 'fullfilled_agv_id', self.order_callback, 10)
 
-        self.agv_orders = [] 
+        self._agv_orders = [] 
+
+    @property
+
+    def orders(self):
+
+        return self._agv_orders
 
     def order_callback(self, msg):
         """
@@ -27,8 +33,8 @@ class AGVControlClient(Node):
         """
         agv_id = msg.data
         self.get_logger().info(f'Received order for AGV {agv_id}')
-        self.agv_orders.append(agv_id)
-        self.process_agv_orders()
+        self._agv_orders.append(agv_id)
+        # self.process_agv_orders()
 
     # def lock_tray(self, agv_id):
     #     """
@@ -88,28 +94,28 @@ class AGVControlClient(Node):
             return future.result()
 
 
-    def move_agv(self, agv_id, station='destination_station'):
-        """
-        Moves the AGV to the destination station.
-        client.wait_for_service() is used to wait for the service to become available.
-        call_async() is used to call the service asynchronously.
-        spin_until_future_complete() is used to wait for the future to be completed.
-        req.station is set to the destination station.
+    # def move_agv(self, agv_id, station='destination_station'):
+    #     """
+    #     Moves the AGV to the destination station.
+    #     client.wait_for_service() is used to wait for the service to become available.
+    #     call_async() is used to call the service asynchronously.
+    #     spin_until_future_complete() is used to wait for the future to be completed.
+    #     req.station is set to the destination station.
 
-        """
-        client = self.create_client(MoveAGV, f'/ariac/move_agv{agv_id}')
-        self.get_logger().info('Inside MOVE AGV after creating clinet')
+    #     """
+    #     client = self.create_client(MoveAGV, f'/ariac/move_agv{agv_id}')
+    #     self.get_logger().info('Inside MOVE AGV after creating clinet')
 
-        while not client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().warn(f'/ariac/move_agv{agv_id} service not available, waiting...')
-        req = MoveAGV.Request()
-        self.get_logger().info('Inside MOVE AGV after Triggering request')
-        req.station = station
-        future = client.call_async(req)
-        rclpy.spin_until_future_complete(self, future)
-        return future.result()
+    #     while not client.wait_for_service(timeout_sec=1.0):
+    #         self.get_logger().warn(f'/ariac/move_agv{agv_id} service not available, waiting...')
+    #     req = MoveAGV.Request()
+    #     self.get_logger().info('Inside MOVE AGV after Triggering request')
+    #     req.station = station
+    #     future = client.call_async(req)
+    #     rclpy.spin_until_future_complete(self, future)
+    #     return future.result()
     
-    def move_agv_to_station(self, num, station):
+    def move_agv(self, num, station):
 
         '''
         Move an AGV to an assembly station.
@@ -123,15 +129,18 @@ class AGVControlClient(Node):
         mover = self.create_client(
             MoveAGV,
             f'/ariac/move_agv{num}')
+        
+        self.get_logger().info('Inside MOVE AGV after creating clinet')
+
         # Create a request object.
         request = MoveAGV.Request()
         # Set the request location.
-        if station in [AssemblyTaskMsg.AS1, AssemblyTaskMsg.AS3]:
-            request.location = MoveAGV.Request.ASSEMBLY_FRONT
-        else:
-            request.location = MoveAGV.Request.ASSEMBLY_BACK
+        request.location = MoveAGV.Request.WAREHOUSE
         # Send the request.
         future = mover.call_async(request)
+
+        self.get_logger().info('Inside MOVE AGV after Triggering request and waiting for response')
+
         # Wait for the server to respond.
         try:
             rclpy.spin_until_future_complete(self, future)
@@ -139,9 +148,13 @@ class AGVControlClient(Node):
             raise KeyboardInterrupt from kb_error
         # Check the result of the service call.
         if future.result().success:
-            self.get_logger().info(f'Moved AGV{num} to {self._stations[station]}')
+            self.get_logger().info(f'Moved AGV{num} to {station}')
+            return future.result()
+
         else:
             self.get_logger().warn(future.result().message)
+            return future.result()
+
 
     def process_agv_orders(self):
         """
@@ -155,7 +168,7 @@ class AGVControlClient(Node):
         If the lock_result is not successful, an error message is logged.
         The AGV id is removed from the agv_orders list.
         """
-        for priority_agv_id in sorted(self.agv_orders, reverse=True):
+        for priority_agv_id in sorted(self._agv_orders, reverse=True):
             self.get_logger().info(f'Processing AGV {priority_agv_id}')
             lock_result = self.lock_tray(priority_agv_id)
             if lock_result.success:
@@ -167,7 +180,7 @@ class AGVControlClient(Node):
                     self.get_logger().info(f'Success to move AGV {priority_agv_id}')
             else:
                 self.get_logger().error(f'Failed to lock tray for AGV {priority_agv_id}')
-            self.agv_orders.remove(priority_agv_id)
+            self._agv_orders.remove(priority_agv_id)
 
 # def main(args=None):
 #     rclpy.init(args=args)
