@@ -23,7 +23,7 @@ def main(args=None):
     4. Destroys the node and shuts down the ROS 2 system once the node stops spinning.
     """
     rclpy.init(args=args) # Initialize the ROS client library
-    SubmissionNode = OrderSubmissionInterface() # Create an instance of the OrderSubmisssionInterface
+    SubmissionNode = OrderSubmissionInterface() # Create an instance of the OrderSubmissionInterface
     try:
         rclpy.spin(SubmissionNode)
     except KeyboardInterrupt:
