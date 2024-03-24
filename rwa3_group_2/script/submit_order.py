@@ -6,7 +6,7 @@ To test this script, run the following commands in separate terminals:
 '''
 
 import rclpy
-from rwa3_group_2.submit_order_interface import OrderSubmisssionInterface
+from rwa3_group_2.submit_order_interface import OrderSubmissionInterface
 
 
 def main(args=None):
@@ -18,12 +18,12 @@ def main(args=None):
 
     This function performs the following steps:
     1. Initializes the ROS 2 Python client library (rclpy) with any provided arguments.
-    2. Creates an instance of `OrderSubmisssionInterface`, which subscribes to a specific topic.
+    2. Creates an instance of `OrderSubmissionInterface`, which subscribes to a specific topic.
     3. Spins (i.e., continuously processes messages on all subscribers) the node to keep it alive.
     4. Destroys the node and shuts down the ROS 2 system once the node stops spinning.
     """
     rclpy.init(args=args) # Initialize the ROS client library
-    SubmissionNode = OrderSubmisssionInterface() # Create an instance of the OrderSubmisssionInterface
+    SubmissionNode = OrderSubmissionInterface() # Create an instance of the OrderSubmisssionInterface
     try:
         rclpy.spin(SubmissionNode)
     except KeyboardInterrupt:
