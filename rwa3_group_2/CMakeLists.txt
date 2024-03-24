@@ -39,5 +39,7 @@ ament_python_install_package(${PROJECT_NAME} SCRIPTS_DESTINATION lib/${PROJECT_N
 # install Python executables
 install(PROGRAMS script/check_competition_state.py DESTINATION lib/${PROJECT_NAME})
 install(PROGRAMS script/orders.py DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS script/fullfill_orders.py DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS script/ship_orders.py DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
