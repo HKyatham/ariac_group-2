@@ -35,14 +35,7 @@ def generate_launch_description():
     )
     
 
-    # Python node fullfill_orders_py.
-    fullfill_orders_py = Node(
-        package="rwa3_group_2",
-        executable="fullfill_orders.py",
-        parameters=[
-                    {"use_sim_time": use_sim_time},
-                    ],    # parameter file
-    )
+    
 
     # Python node ship_orders_py.
     ship_orders_py = Node(
@@ -52,12 +45,18 @@ def generate_launch_description():
                     {"use_sim_time": use_sim_time},
                     ],    # parameter file
     )
+    
+    
+    # Python node submit_order_py.
+    submit_order_py = Node(
+        package="rwa3_group_2",
+        executable="submit_order.py",
+    )
 
     # Adding the nodes to Launch descriptor object.
     #ld.add_action(cmd_line_parameter)
     ld.add_action(check_competition_state_py)
     ld.add_action(orders_py)
+    ld.add_action(submit_order_py)
     ld.add_action(ship_orders_py)
-    # ld.add_action(fullfill_orders_py)
-
     return ld

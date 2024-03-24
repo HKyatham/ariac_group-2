@@ -13,7 +13,6 @@ find_package(std_msgs REQUIRED)
 find_package(ariac_msgs REQUIRED)
 
 install(DIRECTORY
-  include
   launch
   DESTINATION share/${PROJECT_NAME}
 )
@@ -39,7 +38,7 @@ ament_python_install_package(${PROJECT_NAME} SCRIPTS_DESTINATION lib/${PROJECT_N
 # install Python executables
 install(PROGRAMS script/check_competition_state.py DESTINATION lib/${PROJECT_NAME})
 install(PROGRAMS script/orders.py DESTINATION lib/${PROJECT_NAME})
-install(PROGRAMS script/fullfill_orders.py DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS script/submit_order.py DESTINATION lib/${PROJECT_NAME})
 install(PROGRAMS script/ship_orders.py DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
