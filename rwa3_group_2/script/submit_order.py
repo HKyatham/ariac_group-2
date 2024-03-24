@@ -25,13 +25,12 @@ def main(args=None):
     rclpy.init(args=args) # Initialize the ROS client library
     SubmissionNode = OrderSubmisssionInterface() # Create an instance of the OrderSubmisssionInterface
     try:
-        SubmissionNode.submit_order()
+        rclpy.spin(SubmissionNode)
     except KeyboardInterrupt:
         SubmissionNode.get_logger().error("KeyboardInterrupt received!")
     finally:
         SubmissionNode.destroy_node()
         rclpy.shutdown()
-
-
+        
 if __name__ == '__main__':
     main() # Execute the main function when the script is run
