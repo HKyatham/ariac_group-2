@@ -2,15 +2,9 @@ import rclpy
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 from std_msgs.msg import Bool
-from orders_sub_interface import Order
+from .orders_sub_interface import Order
 from ariac_msgs.srv import SubmitOrder
-
-from ariac_msgs.msg import (
-    AGVStatus,
-)
-from ariac_msgs.msg import (
-    Order,
-)
+from ariac_msgs.msg import AGVStatus, Order
 
 
 
@@ -25,7 +19,7 @@ class Color:
     RESET = "\033[0m"
 
 
-class OrderSubmisssionInterface(Node):
+class OrderSubmissionInterface(Node):
     """A ROS2 OrderSubmisssionInterface node that listens to AGVStatus messages on a specified topic and calls a service.
 
     This class creates a node that subscribes to the "/ariac/agv{n}_status" topics, expecting messages of type `ariac_msgs/msg/AGVStatus`.
@@ -53,9 +47,12 @@ class OrderSubmisssionInterface(Node):
         self._agv_2_status_sub = self.create_subscription(AGVStatus, '/ariac/agv2_status', self.agv_2_status_cb, 10)
         self._agv_3_status_sub = self.create_subscription(AGVStatus, '/ariac/agv3_status', self.agv_3_status_cb, 10)
         self._agv_4_status_sub = self.create_subscription(AGVStatus, '/ariac/agv4_status', self.agv_4_status_cb, 10)
-        self._orders_sub = self.create_subscription(Order,'/ariac/orders',self.orders,10)
+        
         self._id_agv_dict = {}
-        self._id_submit = None
+        self._id_1_submit = None
+        self._id_2_submit = None
+        self._id_3_submit  = None
+        self._id_4_submit = None
         self._submit_request = SubmitOrder.Request()
         self._agv_location_status = AGVStatus()
     
@@ -82,10 +79,16 @@ class OrderSubmisssionInterface(Node):
         Args:
             msg (ariac.msgs.msg.AGVStatus): The received message object, containing the AGVStatus data.
         """
+        self.get_logger().info('Inside agv-1 cb')
         self._agv_1_location_status = msg.location
+        self.get_logger().info(f'agv 1 location is : {self._agv_1_location_status}')
+
+        
         if self._agv_1_location_status == AGVStatus.WAREHOUSE:
-            self._id_submit = self._id_agv_dict[1]
-            self._submit_order_request(str(self._id_submit))
+            self._id_1_submit = self._id_agv_dict.get(1)
+            self.get_logger().info(f'order is for submission is : {self._id_1_submit}')
+            
+            self._submit_order_request(self._id_1_submit)
             self.get_logger().info('The AGV-1 has reached ' + Color.GREEN + 'WAREHOUSE' + Color.RESET)
             
             
@@ -97,10 +100,16 @@ class OrderSubmisssionInterface(Node):
         Args:
             msg (ariac.msgs.msg.AGVStatus): The received message object, containing the AGVStatus data.
         """
+        self.get_logger().info('Inside agv-2 cb')
+        
         self._agv_2_location_status = msg.location
+        self.get_logger().info(f'agv 2 location is : {self._agv_2_location_status}')
+
+        
         if self._agv_2_location_status == AGVStatus.WAREHOUSE:
-            self._id_submit = self._id_agv_dict[2]
-            self._submit_order_request(str(self._id_submit))
+            self._id_2_submit = self._id_agv_dict.get(2)
+            self.get_logger().info(f'order is for submission is : {self._id_2_submit}')
+            self._submit_order_request(self._id_2_submit)
             self.get_logger().info('The AGV-2 has reached ' + Color.GREEN + 'WAREHOUSE' + Color.RESET)
             
     def agv_3_status_cb(self,msg):
@@ -111,10 +120,15 @@ class OrderSubmisssionInterface(Node):
         Args:
             msg (ariac.msgs.msg.AGVStatus): The received message object, containing the AGVStatus data.
         """
+        self.get_logger().info('Inside agv-3 cb')
+        
         self._agv_3_location_status = msg.location
+        self.get_logger().info(f'agv 3 location is : {self._agv_3_location_status}')
+        
         if self._agv_3_location_status == AGVStatus.WAREHOUSE:
-            self._id_submit = self._id_agv_dict[3]
-            self._submit_order_request(str(self._id_submit))
+            self._id_3_submit = self._id_agv_dict.get(3)
+            self.get_logger().info(f'order is for submission is : {self._id_3_submit}')
+            self._submit_order_request(self._id_3_submit)
             self.get_logger().info('The AGV-3 has reached ' + Color.GREEN + 'WAREHOUSE' + Color.RESET)
             
     def agv_4_status_cb(self,msg):
@@ -125,10 +139,15 @@ class OrderSubmisssionInterface(Node):
         Args:
             msg (ariac.msgs.msg.AGVStatus): The received message object, containing the AGVStatus data.
         """
+        self.get_logger().info('Inside agv-4 cb')
+        
         self._agv_4_location_status = msg.location
+        self.get_logger().info(f'agv 4 location is : {self._agv_4_location_status}')
+
         if self._agv_4_location_status == AGVStatus.WAREHOUSE:
-            self._id_submit = self._id_agv_dict[4]
-            self._submit_order_request(str(self._id_submit))
+            self._id_4_submit = self._id_agv_dict.get(4)
+            self.get_logger().info(f'order is for submission is : {self._id_4_submit}')
+            self._submit_order_request(self._id_4_submit)
             self.get_logger().info('The AGV has reached ' + Color.GREEN + 'WAREHOUSE' + Color.RESET)
             
     def _submit_order_request(self,order_id:str) -> None:
@@ -142,7 +161,7 @@ class OrderSubmisssionInterface(Node):
             self.get_logger().info("Service not available, waiting...")
 
         # Fill in the request object
-        self._submit_request.order_id = str(order_id)
+        self._submit_request.order_id = order_id
 
         # Call the service asynchronously
         future = self._submit_order_client.call_async(self._submit_request)
