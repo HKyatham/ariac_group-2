@@ -14,18 +14,33 @@ def generate_launch_description():
     """
     # Launch descriptor object. 
     ld = LaunchDescription()
-
+    use_sim_time = LaunchConfiguration('use_sim_time', default='true')
     
     # Python node check_competition_state_py.
     check_competition_state_py = Node(
         package="rwa3_group_2",
         executable="check_competition_state.py",
+        parameters=[
+                    {"use_sim_time": use_sim_time},
+                    ],    # parameter file
     )
     
     # Python node orders_py.
     orders_py = Node(
         package="rwa3_group_2",
-        executable="orders.py"
+        executable="orders.py",
+        parameters=[
+                    {"use_sim_time": use_sim_time},
+                    ],    # parameter file
+    )
+    
+    # Python node ship_orders_py.
+    ship_orders_py = Node(
+        package="rwa3_group_2",
+        executable="ship_orders.py",
+        parameters=[
+                    {"use_sim_time": use_sim_time},
+                    ],    # parameter file
     )
     
     
@@ -33,6 +48,9 @@ def generate_launch_description():
     submit_order_py = Node(
         package="rwa3_group_2",
         executable="submit_order.py",
+        parameters=[
+                    {"use_sim_time": use_sim_time},
+                    ],    # parameter file
     )
 
     # Adding the nodes to Launch descriptor object.
@@ -40,6 +58,5 @@ def generate_launch_description():
     ld.add_action(check_competition_state_py)
     ld.add_action(orders_py)
     ld.add_action(submit_order_py)
-
-
+    ld.add_action(ship_orders_py)
     return ld
