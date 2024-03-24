@@ -6,7 +6,7 @@ from std_msgs.msg import Bool
 from ariac_msgs.msg import (
     CompetitionState,
 )
-
+from .orders_sub_interface import Order
 from std_srvs.srv import Trigger
 
 class Color:
@@ -24,10 +24,11 @@ class CheckCompetitionStateInterface(Node):
 
     This class creates a node that subscribes to the "/ariac/competition_state" topics, expecting messages of type `ariac_msgs/msg/CompetitionState`.
     It logs the received messages to the ROS2 logger. This class also has a service client to "/ariac/start_competition" service to receive a
-    of type "Trigger".
+    of type "Trigger". Finally, it includes a service client to "ariac/end_competition" service to receive a trigger to end the competition. 
 
     Attributes:
         _start_competition_client (rclpy.client): The client object for calling the service.
+        _end_competition_client (rclpy.client): The client object for ending the service.
         _competition_state_sub (rclpy.subscription.Subscription): The subscription object for receiving CompetitionState messages.
         _competition_state (ariac_msgs/msg/CompetitionState): A Int to store state values from /ariac/competition_state topic.
         
@@ -40,6 +41,8 @@ class CheckCompetitionStateInterface(Node):
         self.get_logger().info('Competition node started!')
         
         self._start_competition_client = self.create_client(Trigger, '/ariac/start_competition')
+
+        self._end_competition_client = self.create_client(Trigger, '/ariac/end_competition')
         
         self._competition_state_sub = self.create_subscription(CompetitionState, '/ariac/competition_state', self.competition_state_cb, 10)
         
@@ -61,6 +64,9 @@ class CheckCompetitionStateInterface(Node):
         # self.get_logger().info('Competition state is set to ' + Color.YELLOW + str(self._competition_state) + Color.RESET)
         if self._competition_state == CompetitionState.READY:
             self.get_logger().info('Competition state is set to ' + Color.YELLOW + 'READY' + Color.RESET)
+
+        if self._competition_state == CompetitionState.ENDED & self._competition_state == CompetitionState.ORDER_ANNOUNCEMENTS_DONE:
+            self.get_logger().info('Competition state is set to ' + Color.RED + 'ENDED' + Color.RESET)
             
     def start_competition(self):
         """Client request to send request to /ariac/start_competition service.
@@ -90,5 +96,30 @@ class CheckCompetitionStateInterface(Node):
                 self.get_logger().info('Started competition.')
             else:
                  self.get_logger().warn('Unable to start competition')
-
     
+    def end_competition(self):
+        """Client request to send request to /ariac/end_competition service.
+        
+        This function is used to send an empty Trigger request to /ariac/end_competition service.
+        
+        """
+        self.get_logger().info('Inside end_competition.')
+        # Check if the competition state is ready, if ready send the request to service.
+        if not Order._low_orders and not Order._high_orders and self._competition_state == CompetitionState.ORDER_ANNOUNCEMENTS_DONE:
+            # Creating Request
+            request = Trigger.Request()
+            # Async call to the service.
+            future = self._end_competition_client.call_async(request)
+            
+            self.get_logger().info('Inside end_competition if case.')
+            # Wait until the service call is completed
+            rclpy.spin_until_future_complete(self, future)
+            # Check if the response from the service is success or not.
+            if future.result().success:
+                self.get_logger().info('Ended competition.')
+            else:
+                 self.get_logger().warn('Unable to end competition')
+        
+        else:
+            self.get_logger().warn(
+                'Unable to end competition: Orders are still pending or order annoncements are not done.')
