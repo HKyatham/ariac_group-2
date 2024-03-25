@@ -1,11 +1,9 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.parameter import Parameter
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Int32MultiArray
 from ariac_msgs.srv import SubmitOrder
 from ariac_msgs.msg import AGVStatus, Order
-
-
 
 class Color:
     """
@@ -43,7 +41,8 @@ class OrderSubmissionInterface(Node):
         self. _submit_order_client = self.create_client(SubmitOrder, '/ariac/submit_order')
         self._submitted_orders = set() 
 
-        
+        self._complete_order_pub = self.create_publisher(Bool, "/complete_order", 1)
+
         self._agv_1_status_sub = self.create_subscription(AGVStatus, '/ariac/agv1_status', self.agv_1_status_cb, 10)
         self._agv_2_status_sub = self.create_subscription(AGVStatus, '/ariac/agv2_status', self.agv_2_status_cb, 10)
         self._agv_3_status_sub = self.create_subscription(AGVStatus, '/ariac/agv3_status', self.agv_3_status_cb, 10)
@@ -58,6 +57,7 @@ class OrderSubmissionInterface(Node):
         self._agv_location_status = AGVStatus()
         self._order_id = None
         self._agv_number = None
+        self._order_id_list = set()  
     
     def orders(self, msg):
         """Handle incoming messages on the "/ariac/orders" topic to link AGV number and order id.
@@ -71,9 +71,7 @@ class OrderSubmissionInterface(Node):
         self._order_id= msg.id
         self._agv_number = msg.kitting_task.agv_number
         self._id_agv_dict[self._agv_number] = self._order_id
-        self.get_logger().info(f'Order ID is : {self._order_id}')
-        
-        
+        self.get_logger().info(f'Order ID is : {self._order_id}')    
        
         
         
@@ -85,18 +83,23 @@ class OrderSubmissionInterface(Node):
         Args:
             msg (ariac.msgs.msg.AGVStatus): The received message object, containing the AGVStatus data.
         """
-        self.get_logger().info('Inside agv-1 cb')
+        # self.get_logger().info('Inside agv-1 cb')
         self._agv_1_location_status = msg.location
-        self.get_logger().info(f'AGV-1 location is : {self._agv_1_location_status}')
+        # self.get_logger().info(f'AGV-1 location is : {self._agv_1_location_status}')
 
         if self._agv_1_location_status == AGVStatus.WAREHOUSE:
             self._id_1_submit = self._id_agv_dict.get(1)
-            self.get_logger().info(f'Order ID inside warehouse is .............: {self._id_1_submit}')
+            # self.get_logger().info(f'Order ID inside warehouse is .............: {self._id_1_submit}')
             if self._id_1_submit not in self._submitted_orders:
                 self._submitted_orders.add(self._id_1_submit)
+                self._order_id_list.add(self._id_1_submit)
                 self.get_logger().info(f'Order ID for submission is: {self._id_1_submit}')
                 self._submit_order_request(self._id_1_submit)
                 self.get_logger().info('The AGV-1 has reached ' + Color.GREEN + 'WAREHOUSE' + Color.RESET)
+                if self._complete_orders():
+                    msg = Bool()
+                    msg.data = True
+                    self._complete_order_pub.publish(msg)
             
     def agv_2_status_cb(self,msg):
         """Handle incoming messages on the "/ariac/agv{n}_status " topic.
@@ -106,17 +109,22 @@ class OrderSubmissionInterface(Node):
         Args:
             msg (ariac.msgs.msg.AGVStatus): The received message object, containing the AGVStatus data.
         """
-        self.get_logger().info('Inside agv-2 cb')
+        # self.get_logger().info('Inside agv-2 cb')
         self._agv_2_location_status = msg.location
-        self.get_logger().info(f'AGV-2  location is : {self._agv_2_location_status}')
+        # self.get_logger().(f'AGV-2  location is : {self._agv_2_location_status}')
         
         if self._agv_2_location_status == AGVStatus.WAREHOUSE:
             self._id_2_submit = self._id_agv_dict.get(2)
             if self._id_2_submit not in self._submitted_orders:
                 self._submitted_orders.add(self._id_2_submit)
+                self._order_id_list.add(self._id_2_submit)
                 self.get_logger().info(f'Order ID for submission is: {self._id_2_submit}')
                 self._submit_order_request(self._id_2_submit)
                 self.get_logger().info('The AGV-2 has reached ' + Color.GREEN + 'WAREHOUSE' + Color.RESET)
+                if self._complete_orders():
+                    msg = Bool()
+                    msg.data = True
+                    self._complete_order_pub.publish(msg)
             
     def agv_3_status_cb(self,msg):
         """Handle incoming messages on the "/ariac/agv{n}_status " topic.
@@ -126,18 +134,23 @@ class OrderSubmissionInterface(Node):
         Args:
             msg (ariac.msgs.msg.AGVStatus): The received message object, containing the AGVStatus data.
         """
-        self.get_logger().info('Inside agv-3 cb')
+        # self.get_logger().info('Inside agv-3 cb')
         self._agv_3_location_status = msg.location
-        self.get_logger().info(f'AGV-3  location is : {self._agv_3_location_status}')
+        # self.get_logger().info(f'AGV-3  location is : {self._agv_3_location_status}')
         
         
         if self._agv_3_location_status == AGVStatus.WAREHOUSE:
             self._id_3_submit = self._id_agv_dict.get(3)
             if self._id_3_submit not in self._submitted_orders:
                 self._submitted_orders.add(self._id_3_submit)
+                self._order_id_list.add(self._id_3_submit)
                 self.get_logger().info(f'Order ID for submission is: {self._id_3_submit}')
                 self._submit_order_request(self._id_3_submit)
                 self.get_logger().info('The AGV-3 has reached ' + Color.GREEN + 'WAREHOUSE' + Color.RESET)
+                if self._complete_orders():
+                    msg = Bool()
+                    msg.data = True
+                    self._complete_order_pub.publish(msg)
             
     def agv_4_status_cb(self,msg):
         """Handle incoming messages on the "/ariac/agv{n}_status " topic.
@@ -147,9 +160,9 @@ class OrderSubmissionInterface(Node):
         Args:
             msg (ariac.msgs.msg.AGVStatus): The received message object, containing the AGVStatus data.
         """
-        self.get_logger().info('Inside agv-4 cb')
+        # self.get_logger().info('Inside agv-4 cb')
         self._agv_4_location_status = msg.location
-        self.get_logger().info(f'AGV-4 location is : {self._agv_4_location_status}')
+        # self.get_logger().info(f'AGV-4 location is : {self._agv_4_location_status}')
         self._id_4_submit = self._id_agv_dict.get(4)
         
 
@@ -157,9 +170,14 @@ class OrderSubmissionInterface(Node):
             self._id_4_submit = self._id_agv_dict.get(4)
             if self._id_4_submit not in self._submitted_orders:
                 self._submitted_orders.add(self._id_4_submit)
+                self._order_id_list.add(self._id_4_submit)
                 self.get_logger().info(f'Order ID for submission is: {self._id_4_submit}')
                 self._submit_order_request(self._id_4_submit)
                 self.get_logger().info('The AGV-4 has reached ' + Color.GREEN + 'WAREHOUSE' + Color.RESET)
+                if self._complete_orders():
+                    msg = Bool()
+                    msg.data = True
+                    self._complete_order_pub.publish(msg)
             
     def _submit_order_request(self,order_id:str) -> None:
         """Client request to send request to /ariac/submit_order service.
@@ -186,4 +204,7 @@ class OrderSubmissionInterface(Node):
         # else:
         #     self.get_logger().warn('Order Submission failed')
 
-    
+    def _complete_orders(self):
+        "This function is used to check if all the orders have been completed" 
+
+        return len(self._submitted_orders) == len(self._order_id_list)    

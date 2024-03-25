@@ -3,7 +3,7 @@ from rclpy.node import Node
 from rclpy.parameter import Parameter
 from std_msgs.msg import Bool
 from std_msgs.msg import String
-from std_msgs.msg import Int32
+from std_msgs.msg import Int32, Int32MultiArray
 import time
 from ariac_msgs.msg import (
     Order,
@@ -46,6 +46,7 @@ class OrderSubInterface(Node):
 
         # self._low_priority_pub = self.create_publisher(String, "low_priority", 10)
         self._AGV_ID_pub = self.create_publisher(Int32, "fullfilled_agv_id", 10)    
+        self._order_length_pub = self.create_publisher(Int32MultiArray, "/order_length", 1)
 
         self._timer=self.create_timer(1,self.timer_cb)    
         
@@ -56,10 +57,17 @@ class OrderSubInterface(Node):
         self._low_orders = []   
         self._high_orders = []
         self._send_msg= Int32()
+        self._send_order_length = Int32MultiArray()
 
     # def clock(self, msg):
     #     self.time=msg.sec
     def timer_cb(self):
+
+        low_orders_length = len(self._low_orders)
+        high_orders_length = len(self._high_orders)
+        self._send_order_length.data=[low_orders_length, high_orders_length]
+        self._order_length_pub.publish(self._send_order_length)
+
         if(self._low_orders and len(self._high_orders)==0 ):
             self._counter+=1
             self.get_logger().info(f'Inside lowerOrder: {self._counter}')
@@ -91,8 +99,7 @@ class OrderSubInterface(Node):
             pass
 
 
-        
-    
+            
     def orders(self, msg):
         """Handle incoming messages on the "/ariac/orders" topic.
 
