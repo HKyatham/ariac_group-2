@@ -1,12 +1,11 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.parameter import Parameter
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Int32MultiArray
 
 from ariac_msgs.msg import (
-    CompetitionState,
+    CompetitionState
 )
-from .orders_sub_interface import Order
 from std_srvs.srv import Trigger
 
 class Color:
@@ -45,10 +44,16 @@ class CheckCompetitionStateInterface(Node):
         self._end_competition_client = self.create_client(Trigger, '/ariac/end_competition')
         
         self._competition_state_sub = self.create_subscription(CompetitionState, '/ariac/competition_state', self.competition_state_cb, 10)
+
+        self._order_length_subscriber = self.create_subscription(Int32MultiArray, "/order_length", self.order_length_callback, 1)
+        self._complete_order_sub = self.create_subscription(Bool, "/complete_order", self.compete_order_callback, 1)
         
         self._competition_state = CompetitionState()
-        
-        
+
+        self.low_orders_length = 0
+        self.high_orders_length = 0
+        self._all_orders_submitted = False
+
     def competition_state_cb(self,msg):
         """Handle incoming messages on the "/ariac/competition_state" topic.
 
@@ -97,6 +102,12 @@ class CheckCompetitionStateInterface(Node):
             else:
                  self.get_logger().warn('Unable to start competition')
     
+    def order_length_callback(self, msg):
+        self.low_orders_length, self.high_orders_length = msg.data
+    
+    def compete_order_callback(self, msg):
+        self._all_orders_submitted = msg.data
+    
     def end_competition(self):
         """Client request to send request to /ariac/end_competition service.
         
@@ -105,21 +116,18 @@ class CheckCompetitionStateInterface(Node):
         """
         self.get_logger().info('Inside end_competition.')
         # Check if the competition state is ready, if ready send the request to service.
-        if not Order._low_orders and not Order._high_orders and self._competition_state == CompetitionState.ORDER_ANNOUNCEMENTS_DONE:
-            # Creating Request
-            request = Trigger.Request()
-            # Async call to the service.
-            future = self._end_competition_client.call_async(request)
-            
-            self.get_logger().info('Inside end_competition if case.')
-            # Wait until the service call is completed
-            rclpy.spin_until_future_complete(self, future)
-            # Check if the response from the service is success or not.
-            if future.result().success:
-                self.get_logger().info('Ended competition.')
-            else:
-                 self.get_logger().warn('Unable to end competition')
+        while not (self.low_orders_length == 0 and self.high_orders_length == 0 and self._competition_state == CompetitionState.ORDER_ANNOUNCEMENTS_DONE and self._all_orders_submitted):
+            self.get_logger().info('Inside while case end.')
+            try:
+                rclpy.spin_once(self)
+            except KeyboardInterrupt:
+
+                self.get_logger().error('KeyboardInterrupt received!')
+                break
+        # if self.low_orders_length == 0 and self.high_orders_length == 0 and self._competition_state == CompetitionState.ORDER_ANNOUNCEMENTS_DONE:
+        # Creating Request
+        request = Trigger.Request()
+        # Async call to the service.
+        future = self._end_competition_client.call_async(request)        
+        self.get_logger().info('Inside end_competition if case.')
         
-        else:
-            self.get_logger().warn(
-                'Unable to end competition: Orders are still pending or order annoncements are not done.')
