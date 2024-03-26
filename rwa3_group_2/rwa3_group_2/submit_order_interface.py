@@ -4,6 +4,8 @@ from rclpy.parameter import Parameter
 from std_msgs.msg import Bool, Int32MultiArray
 from ariac_msgs.srv import SubmitOrder
 from ariac_msgs.msg import AGVStatus, Order
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallbackGroup
+
 
 class Color:
     """
@@ -30,6 +32,9 @@ class OrderSubmissionInterface(Node):
     Args:
         node_name (str): The name of the node, provided during instantiation.
     """    
+    mutex_group1 = MutuallyExclusiveCallbackGroup()
+    reentrant_group1 = ReentrantCallbackGroup()
+
     
  
     def __init__(self):
@@ -37,16 +42,16 @@ class OrderSubmissionInterface(Node):
         
         self.get_logger().info('Order Submission node started!')
         
-        self._orders_sub = self.create_subscription(Order,'/ariac/orders',self.orders,10)
+        self._orders_sub = self.create_subscription(Order,'/ariac/orders',self.orders,10,callback_group= OrderSubmissionInterface.mutex_group1)
         self. _submit_order_client = self.create_client(SubmitOrder, '/ariac/submit_order')
         self._submitted_orders = set() 
 
         self._complete_order_pub = self.create_publisher(Bool, "/complete_order", 1)
 
-        self._agv_1_status_sub = self.create_subscription(AGVStatus, '/ariac/agv1_status', self.agv_1_status_cb, 10)
-        self._agv_2_status_sub = self.create_subscription(AGVStatus, '/ariac/agv2_status', self.agv_2_status_cb, 10)
-        self._agv_3_status_sub = self.create_subscription(AGVStatus, '/ariac/agv3_status', self.agv_3_status_cb, 10)
-        self._agv_4_status_sub = self.create_subscription(AGVStatus, '/ariac/agv4_status', self.agv_4_status_cb, 10)
+        self._agv_1_status_sub = self.create_subscription(AGVStatus, '/ariac/agv1_status', self.agv_1_status_cb, 10,callback_group= OrderSubmissionInterface.reentrant_group1)
+        self._agv_2_status_sub = self.create_subscription(AGVStatus, '/ariac/agv2_status', self.agv_2_status_cb, 10,callback_group= OrderSubmissionInterface.reentrant_group1)
+        self._agv_3_status_sub = self.create_subscription(AGVStatus, '/ariac/agv3_status', self.agv_3_status_cb, 10,callback_group= OrderSubmissionInterface.reentrant_group1)
+        self._agv_4_status_sub = self.create_subscription(AGVStatus, '/ariac/agv4_status', self.agv_4_status_cb, 10,callback_group= OrderSubmissionInterface.reentrant_group1)
         
         self._id_agv_dict = {}
         self._id_1_submit = None
@@ -193,16 +198,15 @@ class OrderSubmissionInterface(Node):
         self._submit_request.order_id = order_id
 
         # Call the service asynchronously
-        self._submit_order_client.call_async(self._submit_request)
-        
-        # future = self._submit_order_client.call_async(self._submit_request)
+        # self._submit_order_client.call_async(self._submit_request)
+        future = self._submit_order_client.call_async(self._submit_request)
         # Wait until the service call is completed
-        # rclpy.spin_until_future_complete(self, future)
+        rclpy.spin_until_future_complete(self, future)
         # Check if the response from the service is success or not.
-        # if future.result().success:
-        #     self.get_logger().info('Order Submitted successfully')
-        # else:
-        #     self.get_logger().warn('Order Submission failed')
+        if future.result().success:
+            self.get_logger().info('Order Submitted successfully')
+        else:
+            self.get_logger().warn('Order Submission failed')
 
     def _complete_orders(self):
         "This function is used to check if all the orders have been completed" 

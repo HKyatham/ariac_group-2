@@ -62,7 +62,7 @@ class CheckCompetitionStateInterface(Node):
         Args:
             msg (ariac.msgs.msg.CompetitionState): The received message object, containing the CompetitionState data.
         """
-        self.get_logger().info('Inside competition_state call back...')
+        # self.get_logger().info('Inside competition_state call back...')
         # self.get_logger().info(msg)
         
         self._competition_state = msg.competition_state
@@ -93,7 +93,7 @@ class CheckCompetitionStateInterface(Node):
             # Async call to the service.
             future = self._start_competition_client.call_async(request)
             
-            self.get_logger().info('Inside start_competition if case.')
+            # self.get_logger().info('Inside start_competition if case.')
             # Wait until the service call is completed
             rclpy.spin_until_future_complete(self, future)
             # Check if the response from the service is success or not.
@@ -117,7 +117,7 @@ class CheckCompetitionStateInterface(Node):
         self.get_logger().info('Inside end_competition.')
         # Check if the competition state is ready, if ready send the request to service.
         while not (self.low_orders_length == 0 and self.high_orders_length == 0 and self._competition_state == CompetitionState.ORDER_ANNOUNCEMENTS_DONE and self._all_orders_submitted):
-            self.get_logger().info('Inside while case end.')
+            # self.get_logger().info('Inside while case end.')
             try:
                 rclpy.spin_once(self)
             except KeyboardInterrupt:
@@ -129,5 +129,5 @@ class CheckCompetitionStateInterface(Node):
         request = Trigger.Request()
         # Async call to the service.
         future = self._end_competition_client.call_async(request)        
-        self.get_logger().info('Inside end_competition if case.')
+        # self.get_logger().info('Inside end_competition if case.')
         

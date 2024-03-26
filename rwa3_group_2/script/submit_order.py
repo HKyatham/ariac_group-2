@@ -7,6 +7,7 @@ To test this script, run the following commands in separate terminals:
 
 import rclpy
 from rwa3_group_2.submit_order_interface import OrderSubmissionInterface
+from rclpy.executors import MultiThreadedExecutor
 
 
 def main(args=None):
@@ -24,8 +25,11 @@ def main(args=None):
     """
     rclpy.init(args=args) # Initialize the ROS client library
     SubmissionNode = OrderSubmissionInterface() # Create an instance of the OrderSubmissionInterface
+    executor = MultiThreadedExecutor()
+    executor.add_node(SubmissionNode)
+
     try:
-        rclpy.spin(SubmissionNode)
+        executor.spin()
     except KeyboardInterrupt:
         SubmissionNode.get_logger().error("KeyboardInterrupt received!")
     finally:
