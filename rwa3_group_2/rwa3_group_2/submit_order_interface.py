@@ -47,6 +47,7 @@ class OrderSubmissionInterface(Node):
         self._submitted_orders = set() 
 
         self._complete_order_pub = self.create_publisher(Bool, "/complete_order", 1)
+        self._complete_order_timer = self.create_timer(1, self.complete_order_publish_message)
 
         self._agv_1_status_sub = self.create_subscription(AGVStatus, '/ariac/agv1_status', self.agv_1_status_cb, 10,callback_group= OrderSubmissionInterface.reentrant_group1)
         self._agv_2_status_sub = self.create_subscription(AGVStatus, '/ariac/agv2_status', self.agv_2_status_cb, 10,callback_group= OrderSubmissionInterface.reentrant_group1)
@@ -62,7 +63,9 @@ class OrderSubmissionInterface(Node):
         self._agv_location_status = AGVStatus()
         self._order_id = None
         self._agv_number = None
-        self._order_id_list = set()  
+        self._order_id_list = set()
+        self._total_orders = 0
+        self._complete_ordre = bool()
     
     def orders(self, msg):
         """Handle incoming messages on the "/ariac/orders" topic to link AGV number and order id.
@@ -76,7 +79,10 @@ class OrderSubmissionInterface(Node):
         self._order_id= msg.id
         self._agv_number = msg.kitting_task.agv_number
         self._id_agv_dict[self._agv_number] = self._order_id
-        self.get_logger().info(f'Order ID is : {self._order_id}')    
+        self.get_logger().info(f'Order ID is : {self._order_id}')
+        self._total_orders += 1
+        self.get_logger().info(f'Total Order Count : {self._total_orders}')
+        self._complete_ordre = False
        
         
         
@@ -101,10 +107,6 @@ class OrderSubmissionInterface(Node):
                 self.get_logger().info(f'Order ID for submission is: {self._id_1_submit}')
                 self._submit_order_request(self._id_1_submit)
                 self.get_logger().info('The AGV-1 has reached ' + Color.GREEN + 'WAREHOUSE' + Color.RESET)
-                if self._complete_orders():
-                    msg = Bool()
-                    msg.data = True
-                    self._complete_order_pub.publish(msg)
             
     def agv_2_status_cb(self,msg):
         """Handle incoming messages on the "/ariac/agv{n}_status " topic.
@@ -126,10 +128,6 @@ class OrderSubmissionInterface(Node):
                 self.get_logger().info(f'Order ID for submission is: {self._id_2_submit}')
                 self._submit_order_request(self._id_2_submit)
                 self.get_logger().info('The AGV-2 has reached ' + Color.GREEN + 'WAREHOUSE' + Color.RESET)
-                if self._complete_orders():
-                    msg = Bool()
-                    msg.data = True
-                    self._complete_order_pub.publish(msg)
             
     def agv_3_status_cb(self,msg):
         """Handle incoming messages on the "/ariac/agv{n}_status " topic.
@@ -152,10 +150,6 @@ class OrderSubmissionInterface(Node):
                 self.get_logger().info(f'Order ID for submission is: {self._id_3_submit}')
                 self._submit_order_request(self._id_3_submit)
                 self.get_logger().info('The AGV-3 has reached ' + Color.GREEN + 'WAREHOUSE' + Color.RESET)
-                if self._complete_orders():
-                    msg = Bool()
-                    msg.data = True
-                    self._complete_order_pub.publish(msg)
             
     def agv_4_status_cb(self,msg):
         """Handle incoming messages on the "/ariac/agv{n}_status " topic.
@@ -179,10 +173,6 @@ class OrderSubmissionInterface(Node):
                 self.get_logger().info(f'Order ID for submission is: {self._id_4_submit}')
                 self._submit_order_request(self._id_4_submit)
                 self.get_logger().info('The AGV-4 has reached ' + Color.GREEN + 'WAREHOUSE' + Color.RESET)
-                if self._complete_orders():
-                    msg = Bool()
-                    msg.data = True
-                    self._complete_order_pub.publish(msg)
             
     def _submit_order_request(self,order_id:str) -> None:
         """Client request to send request to /ariac/submit_order service.
@@ -200,15 +190,21 @@ class OrderSubmissionInterface(Node):
         # Call the service asynchronously
         # self._submit_order_client.call_async(self._submit_request)
         future = self._submit_order_client.call_async(self._submit_request)
-        # Wait until the service call is completed
-        rclpy.spin_until_future_complete(self, future)
-        # Check if the response from the service is success or not.
-        if future.result().success:
-            self.get_logger().info('Order Submitted successfully')
-        else:
-            self.get_logger().warn('Order Submission failed')
+        # Add a callback function to be called when the future is complete
+        future.add_done_callback(self.submit_future_callback)
 
-    def _complete_orders(self):
+    def submit_future_callback(self, future):
+        """
+        Callback function for the future object
+
+        Args:
+            future (Future): A future object
+        """
+        self.get_logger().info(f"Submit complete.")
+
+    def complete_order_publish_message(self):
         "This function is used to check if all the orders have been completed" 
-
-        return len(self._submitted_orders) == len(self._order_id_list)    
+        msg = Bool()
+        msg.data = (len(self._submitted_orders) == self._total_orders) and (len(self._submitted_orders) > 0)
+        self.get_logger().info(f'Publishing to /complete_orders: {msg.data}')
+        self._complete_order_pub.publish(msg)
