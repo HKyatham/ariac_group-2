@@ -34,22 +34,29 @@ class OrderSubInterface(Node):
         _orders_sub (rclpy.subscription.Subscription): The subscription object for receiving Order messages.
         _low_orders (List): A list object to store low priority orders.
         _high_orders (List): A list object to store high priority orders.
+        _AGV_ID_pub (rclpy.publisher.Publisher): The publisher object for publishing fullfilled AGV Ids on topic /fullfilled_agv_id
+        _order_length_pub (rclpy.publisher.Publisher):  The publisher object for publishing low priority and high prioirity order lengths /order_length
+        _timer (rclpy.time.Timer): creating timer for timer_cb callback function at the 1hz frequency. This timer is used for faking the order fulfillment
+        _clock (clock): used for logging the sim time while receveing the orders
+        _counter (int32): A counter for keeping count of 15 sec while fullfilling the low priority order
+        _h_counter (int32): A counter for keeping count of 15 sec while fullfilling the high priority order
+        _h_prior (Bool):  A Flag of high priority task
+        _send_msgs (Int32): An attritube to store the AGV ID and later used to pulish it to the topic /fullfilled_agv_id
+        _send_order_length (Int32 Multi Array): An attribute to store the lengths of the low and high priority order lists
         
     Args:
         node_name (str): The name of the node, provided during instantiation.
     """
     def __init__(self):
         super().__init__('OrderSubInterface')
-        
+        #Subscribers
         self._orders_sub = self.create_subscription(Order,'/ariac/orders',self.orders,10)
-        # self._clock_sub = self.create_subscription(Clock,'/clock',self.clock,10)
-
-        # self._low_priority_pub = self.create_publisher(String, "low_priority", 10)
-        self._AGV_ID_pub = self.create_publisher(Int32, "fulfilled_agv_id", 10)    
+        #Publishers
+        self._AGV_ID_pub = self.create_publisher(Int32, "fullfilled_agv_id", 10)    
         self._order_length_pub = self.create_publisher(Int32MultiArray, "/order_length", 1)
-
+        #timers
         self._timer=self.create_timer(1,self.timer_cb)    
-        
+        #Attributes
         self._clock = self.get_clock()
         self._counter=0
         self._h_counter=0
@@ -59,9 +66,12 @@ class OrderSubInterface(Node):
         self._send_msg= Int32()
         self._send_order_length = Int32MultiArray()
 
-    # def clock(self, msg):
-    #     self.time=msg.sec
+   
     def timer_cb(self):
+        """ A timer callback used to fake the order fullfilling task of 15 sec
+        Also implemented the high priority task to take over the ongoing low priority task
+        Also publishes the length of the orders(low as well as high) at 1hz frequency
+        """
 
         low_orders_length = len(self._low_orders)
         high_orders_length = len(self._high_orders)
@@ -73,7 +83,6 @@ class OrderSubInterface(Node):
             self.get_logger().info(f'Timer for lowerOrder: {self._counter}')
 
             if (self._counter%15==0):
-                # self.get_logger().info('fulfilling lower order')
                 poped=self._low_orders.pop(0)
                 self.get_logger().info(f'fulfilling lower order {poped.id} on AGV number {poped.agv_number}')
                 self._send_msg.data= poped.agv_number
@@ -87,7 +96,6 @@ class OrderSubInterface(Node):
             self.get_logger().info(f'Timer for higerOrder: {self._h_counter}')
 
             if (self._h_counter%15==0):
-                # self.get_logger().info('fullfiimg higher order:')
                 poped=self._high_orders.pop(0)
                 self.get_logger().info(f'fulfilling higher order {poped.id} on AGV number {poped.agv_number}')
                 self._send_msg.data= poped.agv_number
@@ -108,17 +116,15 @@ class OrderSubInterface(Node):
         Args:
             msg (ariac.msgs.msg.Order): The received message object, containing the CompetitionState data.
         """
-        self.get_logger().info('Received some  Order')
         
         self.get_logger().info(f'Received an order with order id: {msg.id} and priority: {msg.priority}')
-        # self.get_logger().info(f'Received an order with agv number : {msg.kitting_task.agv_number} and destination: {msg.kitting_task.destination}')
-            # self.get_logger().info(f'Received an order with order id: {msg.id} and priority: {msg.priority}')
-                
+        
+        #Appending Low prioirity orders in the _low_orders list
         if(msg.priority==False):
             self._low_orders.append(Orders(msg))
             self.get_logger().info(f'Received Low Priority Order at : {self._clock.now().nanoseconds/1e9}')
         
-
+        #Appending Low prioirity orders in the _high_orders list
         else:
             self._high_orders.append(Orders(msg))
             self.get_logger().info(f'Received High Priority Order at :{self._clock.now().nanoseconds/1e9}')
