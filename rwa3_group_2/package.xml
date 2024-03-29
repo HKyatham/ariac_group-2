@@ -7,6 +7,7 @@
   <maintainer email="hiteshskyatham@gmail.com">hitesh</maintainer>
   <maintainer email="snairgautam@gmail.com">gautam</maintainer>
   <maintainer email="amaryanmishra21@gmail.com">aryan</maintainer>
+  <maintainer email="sarin.ann10@gmail.com">sarin</maintainer>
   <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
