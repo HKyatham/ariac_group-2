@@ -12,8 +12,7 @@ def main(args=None):
     """
     rclpy.init(args=args)
     agv_control_client = AGVControlClient()
-    try:
-    #     rclpy.spin(agv_control_client)  
+    try:  
         # while not agv_control_client.orders:
             while True:
                 rclpy.spin_once(agv_control_client)

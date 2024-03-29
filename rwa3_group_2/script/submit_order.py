@@ -25,11 +25,11 @@ def main(args=None):
     """
     rclpy.init(args=args) # Initialize the ROS client library
     SubmissionNode = OrderSubmissionInterface() # Create an instance of the OrderSubmissionInterface
-    executor = MultiThreadedExecutor()
+    executor = MultiThreadedExecutor() # For multi-threaded executor
     executor.add_node(SubmissionNode)
 
     try:
-        executor.spin()
+        executor.spin() # Spinning the executor
     except KeyboardInterrupt:
         SubmissionNode.get_logger().error("KeyboardInterrupt received!")
     finally:

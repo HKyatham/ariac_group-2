@@ -45,7 +45,7 @@ class OrderSubInterface(Node):
         # self._clock_sub = self.create_subscription(Clock,'/clock',self.clock,10)
 
         # self._low_priority_pub = self.create_publisher(String, "low_priority", 10)
-        self._AGV_ID_pub = self.create_publisher(Int32, "fullfilled_agv_id", 10)    
+        self._AGV_ID_pub = self.create_publisher(Int32, "fulfilled_agv_id", 10)    
         self._order_length_pub = self.create_publisher(Int32MultiArray, "/order_length", 1)
 
         self._timer=self.create_timer(1,self.timer_cb)    
@@ -70,12 +70,12 @@ class OrderSubInterface(Node):
 
         if(self._low_orders and len(self._high_orders)==0 ):
             self._counter+=1
-            self.get_logger().info(f'Inside lowerOrder: {self._counter}')
+            self.get_logger().info(f'Timer for lowerOrder: {self._counter}')
 
             if (self._counter%15==0):
-                # self.get_logger().info('fullfiimg lower order')
+                # self.get_logger().info('fulfilling lower order')
                 poped=self._low_orders.pop(0)
-                self.get_logger().info(f'fullfiimg lower order {poped.id} on AGV number {poped.agv_number}')
+                self.get_logger().info(f'fulfilling lower order {poped.id} on AGV number {poped.agv_number}')
                 self._send_msg.data= poped.agv_number
                 self._AGV_ID_pub.publish(self._send_msg)
                 self.get_logger().info('PUBLISHED Lower  Order')
@@ -84,12 +84,12 @@ class OrderSubInterface(Node):
 
         elif(self._high_orders or self._h_prior==True):
             self._h_counter+=1
-            self.get_logger().info(f'Inside higerOrder: {self._h_counter}')
+            self.get_logger().info(f'Timer for higerOrder: {self._h_counter}')
 
             if (self._h_counter%15==0):
                 # self.get_logger().info('fullfiimg higher order:')
                 poped=self._high_orders.pop(0)
-                self.get_logger().info(f'fullfiimg higher order {poped.id} on AGV number {poped.agv_number}')
+                self.get_logger().info(f'fulfilling higher order {poped.id} on AGV number {poped.agv_number}')
                 self._send_msg.data= poped.agv_number
                 self._AGV_ID_pub.publish(self._send_msg)
                 self._h_prior=False
