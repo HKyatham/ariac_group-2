@@ -10,12 +10,14 @@ from ariac_msgs.srv import (
 
 class AGVControlClient(Node):
     """
-    AGVControlClient is a node that listens to orders and processes them by locking the tray and moving the AGV.
-
+    AGVControlClient is a node that listens to the topic /fullfilled_agv_id and processes them by locking the tray and moving the AGV to destination.
+    Attributes:
+        subscription (rclpy.subscription.Subscription): The subscription object for receiving fullfilled agv_id messages.
+    Args:
+        node_name (str): The name of the node, provided during instantiation.
     """
     def __init__(self):
         super().__init__('agv_control_client')
-        # self.subscription = self.create_subscription(Order, '/ariac/orders', self.order_callback, 10)
         self.subscription = self.create_subscription(Int32, 'fullfilled_agv_id', self.order_callback, 10)
 
         self._agv_orders = [] 
@@ -23,37 +25,27 @@ class AGVControlClient(Node):
     @property
 
     def orders(self):
-
+        """
+        A getter function to get the list of AGV IDs
+        """
         return self._agv_orders
 
     def order_callback(self, msg):
         """
-        Callback function for the order subscription.
+        Handle incoming messages on the "/fullfilled_agv_id" topic.
+
+        This function is called when a new message is received on the "/fullfilled_agv_id" topic. It stores this data.
+
+        Args:
+            msg (ariac.msgs.msg.Order): The received message object, containing the fullfilled agv ids data.
 
         """
         agv_id = msg.data
         self.get_logger().info(f'Received order for AGV {agv_id}')
         self._agv_orders.append(agv_id)
-        # self.process_agv_orders()
 
-    # def lock_tray(self, agv_id):
-    #     """
-    #     Locks the tray of the AGV.
-    #     wait_for_service() is used to wait for the service to become available.
-    #     call_async() is used to call the service asynchronously.
-    #     spin_until_future_complete() is used to wait for the future to be completed.
-    #     """
-    #     client = self.create_client(Trigger, f'/ariac/agv{agv_id}_lock_tray')
-    #     self.get_logger().info('Inside lock tray after creating clinet')
 
-    #     while not client.wait_for_service(timeout_sec=1.0):
-    #         self.get_logger().warn(f'/ariac/agv{agv_id}_lock_tray service not available, waiting...')
-    #     req = Trigger.Request()
-    #     self.get_logger().info('Inside lock tray after Triggering request')
-    #     future = client.call_async(req)
-    #     rclpy.spin_until_future_complete(self, future)
-    #     return future.result()
-
+   
     def lock_tray(self, num):
 
         '''
@@ -83,7 +75,6 @@ class AGVControlClient(Node):
         except KeyboardInterrupt as kb_error:
             raise KeyboardInterrupt from kb_error
         
-        # return future.result()
 
         # Check the response
         if future.result().success:
@@ -94,26 +85,7 @@ class AGVControlClient(Node):
             return future.result()
 
 
-    # def move_agv(self, agv_id, station='destination_station'):
-    #     """
-    #     Moves the AGV to the destination station.
-    #     client.wait_for_service() is used to wait for the service to become available.
-    #     call_async() is used to call the service asynchronously.
-    #     spin_until_future_complete() is used to wait for the future to be completed.
-    #     req.station is set to the destination station.
-
-    #     """
-    #     client = self.create_client(MoveAGV, f'/ariac/move_agv{agv_id}')
-    #     self.get_logger().info('Inside MOVE AGV after creating clinet')
-
-    #     while not client.wait_for_service(timeout_sec=1.0):
-    #         self.get_logger().warn(f'/ariac/move_agv{agv_id} service not available, waiting...')
-    #     req = MoveAGV.Request()
-    #     self.get_logger().info('Inside MOVE AGV after Triggering request')
-    #     req.station = station
-    #     future = client.call_async(req)
-    #     rclpy.spin_until_future_complete(self, future)
-    #     return future.result()
+    
     
     def move_agv(self, num, station):
 
@@ -156,38 +128,4 @@ class AGVControlClient(Node):
             return future.result()
 
 
-    def process_agv_orders(self):
-        """
-        Processes the AGV orders by locking the tray and moving the AGV.
-        The AGV orders are processed in the order of priority, with the highest priority AGV being processed first.
-        priority_agv_id is set to the highest priority AGV id.
-        lock_result is set to the result of the lock_tray() function.
-        move_result is set to the result of the move_agv() function.
-        If the lock_result is successful, the move_agv() function is called.
-        If the move_result is not successful, an error message is logged.
-        If the lock_result is not successful, an error message is logged.
-        The AGV id is removed from the agv_orders list.
-        """
-        for priority_agv_id in sorted(self._agv_orders, reverse=True):
-            self.get_logger().info(f'Processing AGV {priority_agv_id}')
-            lock_result = self.lock_tray(priority_agv_id)
-            if lock_result.success:
-                self.get_logger().info(f'Success to lock tray for AGV {priority_agv_id}')
-                move_result = self.move_agv(priority_agv_id)
-                if not move_result.success:
-                    self.get_logger().error(f'Failed to move AGV {priority_agv_id}')
-                else:
-                    self.get_logger().info(f'Success to move AGV {priority_agv_id}')
-            else:
-                self.get_logger().error(f'Failed to lock tray for AGV {priority_agv_id}')
-            self._agv_orders.remove(priority_agv_id)
-
-# def main(args=None):
-#     rclpy.init(args=args)
-#     agv_control_client = AGVControlClient()
-#     rclpy.spin(agv_control_client) 
-#     agv_control_client.destroy_node()
-#     rclpy.shutdown()
-
-# if __name__ == '__main__':
-#     main()    
+    

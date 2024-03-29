@@ -13,14 +13,12 @@ def main(args=None):
     rclpy.init(args=args)
     agv_control_client = AGVControlClient()
     try:  
-        # while not agv_control_client.orders:
             while True:
                 rclpy.spin_once(agv_control_client)
-                # agv_control_client.get_logger().info(f'INSIDE SPIN')
-
+                # agv_control_client.get_logger().info(f'Inside AGV control client')
                 if (agv_control_client.orders):
                     for agv in sorted(agv_control_client.orders):
-                        # agv_control_client.get_logger().info(f'Processing AGV {agv}')
+                        agv_control_client.get_logger().info(f'Processing AGV {agv}')
                         lock_result=agv_control_client.lock_tray(agv)
                         if lock_result.success:
                             agv_control_client.get_logger().info(f'Success to lock tray for AGV {agv}')
@@ -32,9 +30,7 @@ def main(args=None):
                         else:
                             agv_control_client.get_logger().error(f'Failed to lock tray for AGV {agv}')
                         agv_control_client.orders.remove(agv)
-            # except KeyboardInterrupt:
-            #     break
-
+            
     except KeyboardInterrupt:
         agv_control_client.get_logger().error("KeyboardInterrupt received!")
     finally:

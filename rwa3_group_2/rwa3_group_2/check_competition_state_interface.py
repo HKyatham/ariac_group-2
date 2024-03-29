@@ -30,7 +30,11 @@ class CheckCompetitionStateInterface(Node):
         _end_competition_client (rclpy.client): The client object for ending the service.
         _competition_state_sub (rclpy.subscription.Subscription): The subscription object for receiving CompetitionState messages.
         _competition_state (ariac_msgs/msg/CompetitionState): A Int to store state values from /ariac/competition_state topic.
-        
+        _order_length_subscribe (rclpy.subscription.Subscription): To get the length of orders (low and high priority orders)
+        _complete_order_sub (rclpy.subscription.Subscription): To get the bool value if the orders are complete or not
+        low_order_lenths :length of low priority orders
+        high_order_lengths : orders of high priority order
+        all_orders_submitted : bool flaf
     Args:
         node_name (str): The name of the node, provided during instantiation.
     """    
@@ -101,11 +105,17 @@ class CheckCompetitionStateInterface(Node):
                 self.get_logger().info('Started competition.')
             else:
                  self.get_logger().warn('Unable to start competition')
-    
     def order_length_callback(self, msg):
+        """Subcriber callback function which is subscribed to the topic /order_length
+
+        This function reads the data of lengths of low priority orders and high priority orders
+        """
         self.low_orders_length, self.high_orders_length = msg.data
     
     def compete_order_callback(self, msg):
+        """Subcriber callback which is subscribed to topic /complete_order
+        This functions stores a bool value in the class attribute _all_orders_submitted
+        """
         self._all_orders_submitted = msg.data
     
     def end_competition(self):
