@@ -14,6 +14,7 @@ find_package(ariac_msgs REQUIRED)
 
 install(DIRECTORY
   launch
+  config
   DESTINATION share/${PROJECT_NAME}
 )
 

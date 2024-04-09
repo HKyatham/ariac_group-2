@@ -5,9 +5,29 @@ from std_msgs.msg import Bool
 from std_msgs.msg import String
 from std_msgs.msg import Int32, Int32MultiArray
 import time
+from geometry_msgs.msg import Pose
+from std_msgs.msg import Header
+from sensor_msgs.msg import Image
 from ariac_msgs.msg import (
     Order,
 )
+
+# class PartTrayDetected():
+#     def __init__(self):
+#         self._part_poses =[]
+#         self._tray_poses =[]
+#         self._sensor_pose = Pose()        
+        
+# class ImageDetected():
+#     def __init__(self, msg:Image):
+#         self._image_header = Header() 
+#         self._image_height = 0 
+#         self._image_width = 0   
+#         self._image_encoding = "" 
+#         self._image_is_bigendian = 0  
+#         self._image_step = 0  
+#         self._image_data = []  
+        
 class Part():
     def __init__(self,part):
         self.type = part.part.type
