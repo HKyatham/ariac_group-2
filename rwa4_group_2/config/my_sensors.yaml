@@ -1,14 +1,48 @@
 sensors:
-  breakbeam_0:
-    type: break_beam
-    visualize_fov: true
-    pose:
-      xyz: [-0.36, 3.5, 0.88]
-      rpy: [0, 0, pi]
-
-  basic_camera_0:
+  right_bins_camera:
     type: basic_logical_camera
     visualize_fov: true
     pose:
       xyz: [-2.286, 2.96, 1.8]
       rpy: [pi, pi/2, 0]
+  right_bins_rgb_camera:
+    type: rgb_camera
+    pose:
+      xyz: [-2.286, 2.96, 2.5]
+      rpy: [pi, pi/2, 0]
+
+  left_bins_camera:
+    type: basic_logical_camera
+    visualize_fov: true
+    pose:
+      xyz: [-2.286, -2.96, 1.8]
+      rpy: [pi, pi/2, 0]
+  left_bins_rgb_camera:
+    type: rgb_camera
+    pose:
+      xyz: [-2.286, -2.96, 2.5]
+      rpy: [pi, pi/2, 0]
+
+  kts1_camera:
+    type: basic_logical_camera
+    visualize_fov: true
+    pose:
+      xyz: [-1.3, -5.8, 1.8]
+      rpy: [pi, pi/2, pi/2]
+  kts1_rgb_camera:
+    type: rgb_camera
+    pose:
+      xyz: [-1.4, -5.8, 1.8]
+      rpy: [pi, pi/2, pi/2]
+  
+  kts2_camera:
+    type: basic_logical_camera
+    visualize_fov: true
+    pose:
+      xyz: [-1.3, 5.8, 1.8]
+      rpy: [pi, pi/2, -pi/2]
+  kts2_rgb_camera:
+    type: rgb_camera
+    pose:
+      xyz: [-1.4, 5.8, 1.8]
+      rpy: [pi, pi/2, -pi/2]

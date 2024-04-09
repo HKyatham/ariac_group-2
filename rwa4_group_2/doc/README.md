@@ -15,13 +15,4 @@ ros2 launch ariac_gazebo ariac.launch.py competitor_pkg:=rwa4_group_2 sensor_con
 ros2 launch rwa4_group_2 rwa4.launch.py
 
 
-**To check sensor configuration**
-----------------------------------------
-
-In Terminal-1
-1. ros2 run ariac_tutorials tutorial_2.py
-
-In Terminal-2
-2. ros2 launch ariac_gazebo ariac.launch.py trial_name:=tutorial competitor_pkg:=ariac_tutorials
-
    
