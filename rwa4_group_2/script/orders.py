@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 '''
 To test this script, run the following commands in separate terminals:
-- ros2 launch ariac_gazebo ariac.launch.py trial_name:=rwa3_spring2024
-- ros2 run rwa3_group_2 submit_order.py
+- ros2 launch ariac_gazebo ariac.launch.py trial_name:=rwa4_spring2024
+- ros2 run ariac_tutorials tutorial_1.py  
 '''
 
 import rclpy
-from rwa3_group_2.submit_order_interface import OrderSubmissionInterface
-from rclpy.executors import MultiThreadedExecutor
+from rwa4_group_2.orders_sub_interface import OrderSubInterface
 
 
 def main(args=None):
@@ -19,22 +18,20 @@ def main(args=None):
 
     This function performs the following steps:
     1. Initializes the ROS 2 Python client library (rclpy) with any provided arguments.
-    2. Creates an instance of `OrderSubmissionInterface`, which subscribes to a specific topic.
+    2. Creates an instance of `OrderSubInterface`, which subscribes to a specific topic.
     3. Spins (i.e., continuously processes messages on all subscribers) the node to keep it alive.
     4. Destroys the node and shuts down the ROS 2 system once the node stops spinning.
     """
     rclpy.init(args=args) # Initialize the ROS client library
-    SubmissionNode = OrderSubmissionInterface() # Create an instance of the OrderSubmissionInterface
-    executor = MultiThreadedExecutor() # For multi-threaded executor
-    executor.add_node(SubmissionNode)
-
+    node = OrderSubInterface() # Create an instance of the OrderSubInterface
     try:
-        executor.spin() # Spinning the executor
+        rclpy.spin(node)
     except KeyboardInterrupt:
-        SubmissionNode.get_logger().error("KeyboardInterrupt received!")
+        node.get_logger().error("KeyboardInterrupt received!")
     finally:
-        SubmissionNode.destroy_node()
+        node.destroy_node()
         rclpy.shutdown()
-        
+
+
 if __name__ == '__main__':
     main() # Execute the main function when the script is run

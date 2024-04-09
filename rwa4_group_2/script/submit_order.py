@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 '''
 To test this script, run the following commands in separate terminals:
-- ros2 launch ariac_gazebo ariac.launch.py trial_name:=rwa3_spring2024
-- ros2 run rwa3_group_2 submit_order.py
+- ros2 launch ariac_gazebo ariac.launch.py trial_name:=rwa4_spring2024
+- ros2 run rwa4_group_2 submit_order.py
 '''
 
 import rclpy
-from rwa3_group_2.submit_order_interface import OrderSubmissionInterface
+from rwa4_group_2.submit_order_interface import OrderSubmissionInterface
 from rclpy.executors import MultiThreadedExecutor
 
 

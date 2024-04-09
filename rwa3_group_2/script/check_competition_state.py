@@ -27,8 +27,11 @@ def main(args=None):
     try:
         competitionNode.get_logger().info("Inside try block.")
         competitionNode.start_competition()
-        # competitionNode.get_logger().info("Spinning.")
-        # rclpy.spin(competitionNode)
+       
+
+        # end the competition if all orders have been submitted
+        # and the competition state is ORDER_ANNOUNCEMENTS_DONE
+        competitionNode.end_competition()
     except KeyboardInterrupt:
         competitionNode.get_logger().error("KeyboardInterrupt received!")
     finally:

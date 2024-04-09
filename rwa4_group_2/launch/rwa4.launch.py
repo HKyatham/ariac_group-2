@@ -18,7 +18,7 @@ def generate_launch_description():
     
     # Python node check_competition_state_py.
     check_competition_state_py = Node(
-        package="rwa3_group_2",
+        package="rwa4_group_2",
         executable="check_competition_state.py",
         parameters=[
                     {"use_sim_time": use_sim_time},
@@ -27,7 +27,7 @@ def generate_launch_description():
     
     # Python node orders_py.
     orders_py = Node(
-        package="rwa3_group_2",
+        package="rwa4_group_2",
         executable="orders.py",
         parameters=[
                     {"use_sim_time": use_sim_time},
@@ -36,7 +36,7 @@ def generate_launch_description():
     
     # Python node ship_orders_py.
     ship_orders_py = Node(
-        package="rwa3_group_2",
+        package="rwa4_group_2",
         executable="ship_orders.py",
         parameters=[
                     {"use_sim_time": use_sim_time},
@@ -46,7 +46,7 @@ def generate_launch_description():
     
     # Python node submit_order_py.
     submit_order_py = Node(
-        package="rwa3_group_2",
+        package="rwa4_group_2",
         executable="submit_order.py",
         parameters=[
                     {"use_sim_time": use_sim_time},

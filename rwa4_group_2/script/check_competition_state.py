@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 '''
 To test this script, run the following commands in separate terminals:
-- ros2 launch ariac_gazebo ariac.launch.py trial_name:=rwa3_spring2024
-- ros2 run rwa3_group_2 submit_order.py
+- ros2 launch ariac_gazebo ariac.launch.py trial_name:=rwa4_spring2024
+- ros2 run rwa4_group_2 check_competition_state.py
 '''
 
 import rclpy
-from rwa3_group_2.submit_order_interface import OrderSubmissionInterface
-from rclpy.executors import MultiThreadedExecutor
+from rwa4_group_2.check_competition_state_interface import CheckCompetitionStateInterface
 
 
 def main(args=None):
@@ -19,22 +18,26 @@ def main(args=None):
 
     This function performs the following steps:
     1. Initializes the ROS 2 Python client library (rclpy) with any provided arguments.
-    2. Creates an instance of `OrderSubmissionInterface`, which subscribes to a specific topic.
+    2. Creates an instance of `CheckCompetitionStateInterface`, which subscribes to a specific topic.
     3. Spins (i.e., continuously processes messages on all subscribers) the node to keep it alive.
     4. Destroys the node and shuts down the ROS 2 system once the node stops spinning.
     """
     rclpy.init(args=args) # Initialize the ROS client library
-    SubmissionNode = OrderSubmissionInterface() # Create an instance of the OrderSubmissionInterface
-    executor = MultiThreadedExecutor() # For multi-threaded executor
-    executor.add_node(SubmissionNode)
-
+    competitionNode = CheckCompetitionStateInterface() # Create an instance of the CheckCompetitionStateInterface
     try:
-        executor.spin() # Spinning the executor
+        competitionNode.get_logger().info("Inside try block.")
+        competitionNode.start_competition()
+       
+
+        # end the competition if all orders have been submitted
+        # and the competition state is ORDER_ANNOUNCEMENTS_DONE
+        competitionNode.end_competition()
     except KeyboardInterrupt:
-        SubmissionNode.get_logger().error("KeyboardInterrupt received!")
+        competitionNode.get_logger().error("KeyboardInterrupt received!")
     finally:
-        SubmissionNode.destroy_node()
+        competitionNode.destroy_node()
         rclpy.shutdown()
-        
+
+
 if __name__ == '__main__':
     main() # Execute the main function when the script is run
