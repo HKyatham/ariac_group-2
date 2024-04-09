@@ -8,9 +8,9 @@
 **************************************
 ******Instructions to run*************
 1. Run the following command in terminal-1
-ros2 launch ariac_gazebo ariac.launch.py trial_name:=rwa3_spring2024
+ros2 launch ariac_gazebo ariac.launch.py trial_name:=rwax_spring2024
 
 2. Run the following command in terminal-2
-ros2 launch rwa3_group_2 rwa3.launch.py
+ros2 launch rwax_group_2 rwax.launch.py
 
    
