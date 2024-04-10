@@ -41,5 +41,6 @@ install(PROGRAMS script/check_competition_state.py DESTINATION lib/${PROJECT_NAM
 install(PROGRAMS script/orders.py DESTINATION lib/${PROJECT_NAME})
 install(PROGRAMS script/submit_order.py DESTINATION lib/${PROJECT_NAME})
 install(PROGRAMS script/ship_orders.py DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS script/sensor_sub_.py DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
