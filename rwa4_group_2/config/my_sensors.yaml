@@ -38,7 +38,7 @@ sensors:
     type: rgb_camera
     visualize_fov: true
     pose:
-      xyz: [-1.37, -5.8, 1.8]
+      xyz: [-1.30, -5.8, 1.5]  
       rpy: [pi, pi/2, pi/2]
 
 #RIGHT TRAY CAMERAS
@@ -52,5 +52,5 @@ sensors:
     visualize_fov: true
     type: rgb_camera
     pose:
-      xyz: [-1.23, 5.8, 1.8]
+      xyz: [-1.30, 5.8, 1.5]
       rpy: [pi, pi/2, -pi/2]
