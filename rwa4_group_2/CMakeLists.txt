@@ -11,6 +11,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(ariac_msgs REQUIRED)
+find_package(OpenCV REQUIRED)
 
 install(DIRECTORY
   launch
