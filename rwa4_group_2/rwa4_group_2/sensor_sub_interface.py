@@ -414,7 +414,7 @@ class ImageSubscriber(Node):
     
     def _kts1_rgb_camera_cb(self,msg):
         try:
-            detect_kts1 = ArucoDetector("KTS2")
+            detect_kts1 = ArucoDetector("KTS1")
             cv_image = self._bridge.imgmsg_to_cv2(msg, 'bgr8')
             kits_1_aruco_crops = [
             {"x1": 104, "y1": 199, "x2": 149, "y2": 244},
@@ -424,6 +424,7 @@ class ImageSubscriber(Node):
             for crop in kits_1_aruco_crops:
                 self._kts1_tray_data = detect_kts1.crop_aruco(cv_image, crop["x1"], crop["y1"], crop["x2"], crop["y2"], detect_kts1._aruco_dict)
             self.get_logger().info(f'Kts1  - Tray data: {self._kts1_tray_data}')
+        
         except Exception as e:
             self.get_logger().error('Failed to convert image: %r' % (e,))
     

@@ -20,7 +20,6 @@ class ArucoDetector():
     def get_slots(self,tray_id):
         return self._tray_data.get(tray_id, [])
     
-
     def aruco_detection(self,image, dictionary):
         # Initialising the Aruco parameters
         parameters = cv2.aruco.DetectorParameters()
@@ -33,8 +32,9 @@ class ArucoDetector():
                 self._slot_counter += 1  
             return self._tray_data
         else:
+            self._slot_counter += 1  
             print("No markers detected")
-            return None
+            return self._tray_data
 
     def crop_aruco(self,image, x1, y1, x2, y2, dictionary):
         img_frame_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
