@@ -5,9 +5,26 @@ from sensor_msgs.msg import Image
 from ariac_msgs.msg import BasicLogicalCameraImage
 from cv_bridge import CvBridge
 import cv2
+from .aruco_detector_interface import ArucoDetector
 import numpy as np
 
 class ImageSubscriber(Node):
+    """A ROS2 OrderSubInterface node that listens to Order messages on a specified topic.
+
+    This class creates a node that subscribes to the "/ariac/orders" topics, expecting messages of type `ariac_msgs/msg/Order`.
+    It logs the part of received messages to the ROS2 logger and stores the message.
+
+    Attributes:
+        _right_bins_camera_sub (rclpy.subscription.Subscription): The subscription object from basic logical camera
+        _left_bins_camera_sub (rclpy.subscription.Subscription): The subscription object from basic logical camera
+        _kts2_camera_sub (rclpy.subscription.Subscription): The subscription object from basic logical camera
+        _kts2_camera_sub (rclpy.subscription.Subscription): The subscription object from basic logical camera
+        _kts1_tray_data (dict): A dict object to store tray data
+        _kts2_tray_data (dict): A dict object to store tray data
+        
+    Args:
+        node_name (str): The name of the node, provided during instantiation.
+    """
     def __init__(self):
         super().__init__('image_subscriber')
         self._part_list=[]
@@ -23,6 +40,9 @@ class ImageSubscriber(Node):
         self._bridge = CvBridge()
         self._colour_identification_right()
         self._colour_identification_left()
+        self._kts2_tray_data ={}
+        self._kts1_tray_data ={}
+        
         
 
 
@@ -394,10 +414,16 @@ class ImageSubscriber(Node):
     
     def _kts1_rgb_camera_cb(self,msg):
         try:
+            detect_kts1 = ArucoDetector("KTS2")
             cv_image = self._bridge.imgmsg_to_cv2(msg, 'bgr8')
-            cv2.imshow('Left Tray Image', cv_image)
-            cv2.waitKey(1)
-            # self.get_logger().info('Received an image of shape: {}'.format(cv_image.shape))
+            kits_1_aruco_crops = [
+            {"x1": 104, "y1": 199, "x2": 149, "y2": 244},
+            {"x1": 297, "y1": 199, "x2": 342, "y2": 244},
+            {"x1": 490, "y1": 199, "x2": 535, "y2": 244},
+            ]
+            for crop in kits_1_aruco_crops:
+                self._kts1_tray_data = detect_kts1.crop_aruco(cv_image, crop["x1"], crop["y1"], crop["x2"], crop["y2"], detect_kts1._aruco_dict)
+            self.get_logger().info(f'Kts1  - Tray data: {self._kts1_tray_data}')
         except Exception as e:
             self.get_logger().error('Failed to convert image: %r' % (e,))
     
@@ -421,10 +447,16 @@ class ImageSubscriber(Node):
 
     def _kts2_rgb_camera_cb(self,msg):
         try:
+            detect_kts2 = ArucoDetector("KTS2")
             cv_image = self._bridge.imgmsg_to_cv2(msg, 'bgr8')
-            cv2.imshow('Right Tray Image', cv_image)
-            cv2.waitKey(1)
-            # self.get_logger().info('Received an image of shape: {}'.format(cv_image.shape))
+            kits_2_aruco_crops = [
+            {"x1": 104, "y1": 199, "x2": 149, "y2": 244},
+            {"x1": 297, "y1": 199, "x2": 342, "y2": 244},
+            {"x1": 490, "y1": 199, "x2": 535, "y2": 244},
+            ]
+            for crop in kits_2_aruco_crops:
+                self._kts2_tray_data = detect_kts2.crop_aruco(cv_image, crop["x1"], crop["y1"], crop["x2"], crop["y2"], detect_kts2._aruco_dict)
+            self.get_logger().info(f'Kts2  - Tray data: {self._kts2_tray_data}')
         except Exception as e:
             self.get_logger().error('Failed to convert image: %r' % (e,))
     
