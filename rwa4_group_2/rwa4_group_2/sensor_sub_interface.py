@@ -3,28 +3,12 @@ from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Image
 from ariac_msgs.msg import BasicLogicalCameraImage
+from .aruco_detector_interface import ArucoDetector
 from cv_bridge import CvBridge
 import cv2
-from .aruco_detector_interface import ArucoDetector
 import numpy as np
 
 class ImageSubscriber(Node):
-    """A ROS2 OrderSubInterface node that listens to Order messages on a specified topic.
-
-    This class creates a node that subscribes to the "/ariac/orders" topics, expecting messages of type `ariac_msgs/msg/Order`.
-    It logs the part of received messages to the ROS2 logger and stores the message.
-
-    Attributes:
-        _right_bins_camera_sub (rclpy.subscription.Subscription): The subscription object from basic logical camera
-        _left_bins_camera_sub (rclpy.subscription.Subscription): The subscription object from basic logical camera
-        _kts2_camera_sub (rclpy.subscription.Subscription): The subscription object from basic logical camera
-        _kts2_camera_sub (rclpy.subscription.Subscription): The subscription object from basic logical camera
-        _kts1_tray_data (dict): A dict object to store tray data
-        _kts2_tray_data (dict): A dict object to store tray data
-        
-    Args:
-        node_name (str): The name of the node, provided during instantiation.
-    """
     def __init__(self):
         super().__init__('image_subscriber')
         self._part_list=[]
@@ -38,23 +22,24 @@ class ImageSubscriber(Node):
         self.kts2_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/kts2_camera/image",self._kts2_camera_cb,qos_profile_sensor_data)
 
         self._bridge = CvBridge()
-        self._colour_identification_right()
-        self._colour_identification_left()
-        self._kts2_tray_data ={}
-        self._kts1_tray_data ={}
+        
         
         
 
 
     def _right_bins_rgb_camera_cb(self,msg):
-        try:
-            cv_image = self._bridge.imgmsg_to_cv2(msg, 'bgr8')
-            cv2.imshow('Right Bin Image', cv_image)
-            # cv2.imwrite('right_bin_image.png',cv_image)
-            cv2.waitKey(1)
-            # self.get_logger().info('Received an image of shape: {}'.format(cv_image.shape))
-        except Exception as e:
-            self.get_logger().error('Failed to convert image: %r' % (e,))
+        cv_image = self._bridge.imgmsg_to_cv2(msg, "bgr8")
+        cv2.imwrite('right_bin_image.png', cv_image)  # Save the image from the callback
+        self._colour_identification_right()
+        # try:
+        #     cv_image = self._bridge.imgmsg_to_cv2(msg, 'bgr8')
+        #     cv2.imshow('Right Bin Image', cv_image)
+        #     # cv2.imwrite('right_bin_image.png',cv_image)
+        #     cv2.waitKey(1)
+        #     self._colour_identification_right()
+        #     # self.get_logger().info('Received an image of shape: {}'.format(cv_image.shape))
+        # except Exception as e:
+        #     self.get_logger().error('Failed to convert image: %r' % (e,))
 
     def _right_bins_camera_cb(self,msg):
         try:
@@ -233,14 +218,18 @@ class ImageSubscriber(Node):
 
 
     def _left_bins_rgb_camera_cb(self,msg):
-        try:
-            cv_image = self._bridge.imgmsg_to_cv2(msg, 'bgr8')
-            cv2.imshow('Left Bin Image', cv_image)
-            # cv2.imwrite('left_bin_image.jpg',cv_image)
-            cv2.waitKey(1)
-            # self.get_logger().info('Received an image of shape: {}'.format(cv_image.shape))
-        except Exception as e:
-            self.get_logger().error('Failed to convert image: %r' % (e,))
+        cv_image = self._bridge.imgmsg_to_cv2(msg, "bgr8")
+        cv2.imwrite('left_bin_image.png', cv_image)  # Save the image from the callback
+        self._colour_identification_left()
+        # try:
+        #     cv_image = self._bridge.imgmsg_to_cv2(msg, 'bgr8')
+        #     cv2.imshow('Left Bin Image', cv_image)
+        #     # cv2.imwrite('left_bin_image.jpg',cv_image)
+        #     cv2.waitKey(1)
+        #     self._colour_identification_left()
+        #     # self.get_logger().info('Received an image of shape: {}'.format(cv_image.shape))
+        # except Exception as e:
+        #     self.get_logger().error('Failed to convert image: %r' % (e,))
 
     def _left_bins_camera_cb(self,msg):
         try:
@@ -477,8 +466,7 @@ class ImageSubscriber(Node):
                 self.get_logger().info(f'Part {i+1} Position: {X} ,{Y} ,{Z}')
                 self.get_logger().info(f'Part {i+1} Orientation: {oX} ,{oY} ,{oZ}, {oW}')
         except Exception as e:
-            self.get_logger().error('Failed to convert image: %r' % (e,))
-   
+            self.get_logger().error('Failed to convert image: %r' % (e,))   
     def _colour_identification_right(self):
         bin_crops_right = {
                 1.9: (0, 70, 115, 178),
@@ -699,7 +687,7 @@ class ImageSubscriber(Node):
         matches = bf.knnMatch(descriptors1, descriptors2, k=2)
         good = []
         for m, n in matches:
-            if m.distance < 0.5 * n.distance:
+            if m.distance < 0.8 * n.distance:
                 good.append(m)
         return good
 
