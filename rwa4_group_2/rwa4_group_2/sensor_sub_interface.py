@@ -7,40 +7,36 @@ from .aruco_detector_interface import ArucoDetector
 from cv_bridge import CvBridge
 import cv2
 import numpy as np
+import math
 
 class ImageSubscriber(Node):
     def __init__(self):
         super().__init__('image_subscriber')
-        self._part_list=[]
-        self.right_bins_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/right_bins_rgb_camera/rgb_image",self._right_bins_rgb_camera_cb,10)
+        self._left_part_list=[]
+        self._right_part_list=[]
+        self._part_dic = {}
+        colors = ['green', 'orange', 'blue', 'red', 'yellow', 'purple']
+        components = ['sensor', 'battery', 'regulator', 'pump']
+        for color in colors:
+            for component in components:
+                attr_name = f"_{color}_{component}"
+                setattr(self, attr_name, [])
         self.right_bins_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/right_bins_camera/image",self._right_bins_camera_cb, qos_profile_sensor_data)
-        self.left_bins_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/left_bins_rgb_camera/rgb_image",self._left_bins_rgb_camera_cb,10)
+        self.right_bins_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/right_bins_rgb_camera/rgb_image",self._right_bins_rgb_camera_cb,10)
         self.left_bins_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/left_bins_camera/image",self._left_bins_camera_cb, qos_profile_sensor_data)
-        self.kts1_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/kts1_rgb_camera/rgb_image",self._kts1_rgb_camera_cb,10)
-        self.kts1_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/kts1_camera/image",self._kts1_camera_cb,qos_profile_sensor_data)
-        self.kts2_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/kts2_rgb_camera/rgb_image",self._kts2_rgb_camera_cb,10)
-        self.kts2_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/kts2_camera/image",self._kts2_camera_cb,qos_profile_sensor_data)
-
+        self.left_bins_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/left_bins_rgb_camera/rgb_image",self._left_bins_rgb_camera_cb,10)
+        # self.kts1_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/kts1_rgb_camera/rgb_image",self._kts1_rgb_camera_cb,10)
+        # self.kts1_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/kts1_camera/image",self._kts1_camera_cb,qos_profile_sensor_data)
+        # self.kts2_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/kts2_rgb_camera/rgb_image",self._kts2_rgb_camera_cb,10)
+        # self.kts2_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/kts2_camera/image",self._kts2_camera_cb,qos_profile_sensor_data)
         self._bridge = CvBridge()
-        
-        
-        
-
-
     def _right_bins_rgb_camera_cb(self,msg):
-        cv_image = self._bridge.imgmsg_to_cv2(msg, "bgr8")
-        cv2.imwrite('right_bin_image.png', cv_image)  # Save the image from the callback
-        self._colour_identification_right()
-        # try:
-        #     cv_image = self._bridge.imgmsg_to_cv2(msg, 'bgr8')
-        #     cv2.imshow('Right Bin Image', cv_image)
-        #     # cv2.imwrite('right_bin_image.png',cv_image)
-        #     cv2.waitKey(1)
-        #     self._colour_identification_right()
-        #     # self.get_logger().info('Received an image of shape: {}'.format(cv_image.shape))
-        # except Exception as e:
-        #     self.get_logger().error('Failed to convert image: %r' % (e,))
-
+        try:
+            cv_image = self._bridge.imgmsg_to_cv2(msg, "bgr8")
+            self._colour_identification_right(cv_image)
+        except Exception as e:
+            self.get_logger().error('Failed to convert image: %r' % (e,))
+    
     def _right_bins_camera_cb(self,msg):
         try:
             if len(msg._part_poses) == 0:
@@ -54,163 +50,26 @@ class ImageSubscriber(Node):
                 oY=part_pose.orientation.y
                 oZ=part_pose.orientation.z
                 oW=part_pose.orientation.w
-                # self.get_logger().info(f'Part {i+1} Position: {X} ,{Y} ,{Z}')
-                if abs(-0.595-Y)<0.001 and abs(-0.566-Z)<0.001:
-                    if not (1.9,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 1.9')
-                        self._part_list.append((1.9,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.415-Y)<0.001 and abs(-0.566-Z)<0.001:
-                    if not (1.8,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 1.8')
-                        self._part_list.append((1.8,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.235-Y)<0.001 and abs(-0.566-Z)<0.001:
-                    if not (1.7,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 1.7')
-                        self._part_list.append((1.7,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.595-Y)<0.001 and abs(-0.386-Z)<0.001:
-                    if not (1.6,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 1.6')
-                        self._part_list.append((1.6,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.415-Y)<0.001 and abs(-0.386-Z)<0.001:
-                    if not (1.5,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 1.5')
-                        self._part_list.append((1.5,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.235-Y)<0.001 and abs(-0.386-Z)<0.001:
-                    if not (1.4,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 1.4')
-                        self._part_list.append((1.4,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.595-Y)<0.001 and abs(-0.206-Z)<0.001:
-                    if not (1.3,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 1.3')
-                        self._part_list.append((1.3,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.415-Y)<0.001 and abs(-0.206-Z)<0.001:
-                    if not (1.2,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 1.2')
-                        self._part_list.append((1.2,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.235-Y)<0.001 and abs(-0.206-Z)<0.001:
-                    if not (1.1,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 1.1')
-                        self._part_list.append((1.1,[X,Y,Z],[oX,oY,oZ,oW]))
-                
 
-                elif abs(0.155-Y)<0.001 and abs(-0.566-Z)<0.001:
-                    if not (2.9,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 2.9')
-                        self._part_list.append((2.9,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.335-Y)<0.001 and abs(-0.566-Z)<0.001:
-                    if not (2.8,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 2.8')
-                        self._part_list.append((2.8,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.515-Y)<0.001 and abs(-0.566-Z)<0.001:
-                    if not (2.7,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 2.7')
-                        self._part_list.append((2.7,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.155-Y)<0.001 and abs(-0.386-Z)<0.001:
-                    if not (2.6,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 2.6')
-                        self._part_list.append((2.6,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.335-Y)<0.001 and abs(-0.386-Z)<0.001:
-                    if not (2.5,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 2.5')
-                        self._part_list.append((2.5,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.515-Y)<0.001 and abs(-0.386-Z)<0.001:
-                    if not (2.4,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 2.4')
-                        self._part_list.append((2.4,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.155-Y)<0.001 and abs(-0.206-Z)<0.001:
-                    if not (2.3,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 2.3')
-                        self._part_list.append((2.3,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.335-Y)<0.001 and abs(-0.206-Z)<0.001:
-                    if not (2.2,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 2.2')
-                        self._part_list.append((2.2,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.515-Y)<0.001 and abs(-0.206-Z)<0.001:
-                    if not (2.1,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 2.1')
-                        self._part_list.append((2.1,[X,Y,Z],[oX,oY,oZ,oW]))
+                _Y_axis=[-0.595,-0.415,-0.235,0.155,0.335,0.515]
+                _Z_axis=[-0.566,-0.386,-0.206,0.184,0.364,0.544]
+                _slot_val={1:1.9,2:1.8,3:1.7,4:2.9,5:2.8,6:2.7,
+                           7:1.6,8:1.5,9:1.4,10:2.6,11:2.5,12:2.4,
+                           13:1.3,14:1.2,15:1.1,16:2.3,17:2.2,18:2.1,
+                           19:4.9,20:4.8,21:4.7,22:3.9,23:3.8,24:3.7,
+                           25:4.6,26:4.5,27:4.4,28:3.6,29:3.5,30:3.4,
+                           31:4.3,32:4.2,33:4.1,34:3.3,35:3.2,36:3.1}
 
-                elif abs(0.155-Y)<0.001 and abs(0.184-Z)<0.001:
-                    if not (3.9,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 3.9')
-                        self._part_list.append((3.9,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.335-Y)<0.001 and abs(0.184-Z)<0.001:
-                    if not (3.8,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 3.8')
-                        self._part_list.append((3.8,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.515-Y)<0.001 and abs(0.184-Z)<0.001:
-                    if not (3.7,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 3.7')
-                        self._part_list.append((3.7,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.155-Y)<0.001 and abs(0.364-Z)<0.001:
-                    if not (3.6,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 3.6')
-                        self._part_list.append((3.6,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.335-Y)<0.001 and abs(0.364-Z)<0.001:
-                    if not (3.5,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 3.5')
-                        self._part_list.append((3.5,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.515-Y)<0.001 and abs(0.364-Z)<0.001:
-                    if not (3.4,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 3.4')
-                        self._part_list.append((3.4,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.155-Y)<0.001 and abs(0.544-Z)<0.001:
-                    if not (3.3,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 3.3')
-                        self._part_list.append((3.3,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.335-Y)<0.001 and abs(0.544-Z)<0.001:
-                    if not (3.2,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 3.2')
-                        self._part_list.append((3.2,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.515-Y)<0.001 and abs(0.544-Z)<0.001:
-                    if not (3.1,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 3.1')
-                        self._part_list.append((3.1,[X,Y,Z],[oX,oY,oZ,oW]))
-
-                elif abs(-0.595-Y)<0.001 and abs(0.1848-Z)<0.001:
-                    if not (4.9,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 4.9')
-                        self._part_list.append((4.9,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.415-Y)<0.001 and abs(0.184-Z)<0.001:
-                    if not (4.8,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 4.8')
-                        self._part_list.append((4.8,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.235-Y)<0.001 and abs(0.184-Z)<0.001:
-                    if not (4.7,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 4.7')
-                        self._part_list.append((4.7,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.595-Y)<0.001 and abs(0.364-Z)<0.001:
-                    if not (4.6,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 4.6')
-                        self._part_list.append((4.6,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.415-Y)<0.001 and abs(0.364-Z)<0.001:
-                    if not (4.5,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 4.5')
-                        self._part_list.append((4.5,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.235-Y)<0.001 and abs(0.364-Z)<0.001:
-                    if not (4.4,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 4.4')
-                        self._part_list.append((4.4,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.595-Y)<0.001 and abs(0.544-Z)<0.001:
-                    if not (4.3,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 4.3')
-                        self._part_list.append((4.3,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.415-Y)<0.001 and abs(0.544-Z)<0.001:
-                    if not (4.2,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 4.2')
-                        self._part_list.append((4.2,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.235-Y)<0.001 and abs(0.544-Z)<0.001:
-                    if not (4.1,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 4.1')
-                        self._part_list.append((4.1,[X,Y,Z],[oX,oY,oZ,oW]))
-                
-
-
-
-
-                
-                # self.get_logger().info(f'Part {i+1} Orientation: {oX} ,{oY} ,{oZ}, {oW}')
-
+                counter=0                
+                for i, z_val in enumerate(_Z_axis):
+                    for j , y_val in enumerate(_Y_axis):
+                        counter+=1
+                        if abs(y_val-Y)<0.001 and abs(z_val-Z)<0.001:
+                            slot=_slot_val.get(counter)
+                            if slot not in self._right_part_list:
+                                self.get_logger().info(f'Found Item in bin {i},{j},{counter},{slot}')
+                                self._right_part_list.append(slot)
+                                self._part_dic.update({(slot):(X,Y,Z, oX,oY,oZ,oW)})
 
             
         except Exception as e:
@@ -218,18 +77,11 @@ class ImageSubscriber(Node):
 
 
     def _left_bins_rgb_camera_cb(self,msg):
-        cv_image = self._bridge.imgmsg_to_cv2(msg, "bgr8")
-        cv2.imwrite('left_bin_image.png', cv_image)  # Save the image from the callback
-        self._colour_identification_left()
-        # try:
-        #     cv_image = self._bridge.imgmsg_to_cv2(msg, 'bgr8')
-        #     cv2.imshow('Left Bin Image', cv_image)
-        #     # cv2.imwrite('left_bin_image.jpg',cv_image)
-        #     cv2.waitKey(1)
-        #     self._colour_identification_left()
-        #     # self.get_logger().info('Received an image of shape: {}'.format(cv_image.shape))
-        # except Exception as e:
-        #     self.get_logger().error('Failed to convert image: %r' % (e,))
+        try:
+            cv_image = self._bridge.imgmsg_to_cv2(msg, "bgr8")
+            self._colour_identification_left(cv_image)
+        except Exception as e:
+            self.get_logger().error('Failed to convert image: %r' % (e,))
 
     def _left_bins_camera_cb(self,msg):
         try:
@@ -244,158 +96,26 @@ class ImageSubscriber(Node):
                 oY=part_pose.orientation.y
                 oZ=part_pose.orientation.z
                 oW=part_pose.orientation.w
-                # self.get_logger().info(f'Part {i+1} Position: {X} ,{Y} ,{Z}')
+                _Y_axis=[-0.515,-0.335,-0.155,0.235,0.415,0.595]
+                _Z_axis=[-0.566,-0.386,-0.206,0.184,0.364,0.544]
+                _slot_val={1:6.9,2:6.8,3:6.7,4:5.9,5:5.8,6:5.7,
+                        7:6.6,8:6.5,9:6.4,10:5.6,11:5.5,12:5.4,
+                        13:6.3,14:6.2,15:6.1,16:5.3,17:5.2,18:5.1,
+                        19:7.9,20:7.8,21:7.7,22:8.9,23:8.8,24:8.7,
+                        25:7.6,26:7.5,27:7.4,28:8.6,29:8.5,30:8.4,
+                        31:7.3,32:7.2,33:7.1,34:8.3,35:8.2,36:8.1}
 
-                if abs(0.595-Y)<0.001 and abs(-0.566-Z)<0.001:
-                    if not (5.7,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 5.7')
-                        self._part_list.append((5.9,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.415-Y)<0.001 and abs(-0.566-Z)<0.001:
-                    if not (5.8,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 5.8')
-                        self._part_list.append((5.8,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.235-Y)<0.001 and abs(-0.566-Z)<0.001:
-                    if not (5.9,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 5.9')
-                        self._part_list.append((5.7,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.595-Y)<0.001 and abs(-0.386-Z)<0.001:
-                    if not (5.4,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 5.4')
-                        self._part_list.append((5.6,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.415-Y)<0.001 and abs(-0.386-Z)<0.001:
-                    if not (5.5,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 5.5')
-                        self._part_list.append((5.5,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.235-Y)<0.001 and abs(-0.386-Z)<0.001:
-                    if not (5.6,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 5.6')
-                        self._part_list.append((5.4,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.595-Y)<0.001 and abs(-0.206-Z)<0.001:
-                    if not (5.1,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 5.1')
-                        self._part_list.append((5.1,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.415-Y)<0.001 and abs(-0.206-Z)<0.001:
-                    if not (5.2,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 5.2')
-                        self._part_list.append((5.2,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.235-Y)<0.001 and abs(-0.206-Z)<0.001:
-                    if not (5.3,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 5.3')
-                        self._part_list.append((5.3,[X,Y,Z],[oX,oY,oZ,oW]))
+                counter=0                
+                for i, z_val in enumerate(_Z_axis):
+                    for j , y_val in enumerate(_Y_axis):
+                        counter+=1
+                        if abs(y_val-Y)<0.001 and abs(z_val-Z)<0.001:
+                            slot=_slot_val.get(counter)
+                            if slot not in self._left_part_list:
+                                self.get_logger().info(f'Found Item in bin {i},{j},{counter},{slot}')
+                                self._left_part_list.append(slot)
+                                self._part_dic.update({(slot):(X,Y,Z, oX,oY,oZ,oW)})
                 
-
-                elif abs(-0.155-Y)<0.001 and abs(-0.566-Z)<0.001:
-                    if not (6.7,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 6.7')
-                        self._part_list.append((6.9,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.335-Y)<0.001 and abs(-0.566-Z)<0.001:
-                    if not (6.8,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 6.8')
-                        self._part_list.append((6.8,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.515-Y)<0.001 and abs(-0.566-Z)<0.001:
-                    if not (6.9,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 6.9')
-                        self._part_list.append((6.7,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.155-Y)<0.001 and abs(-0.386-Z)<0.001:
-                    if not (6.4,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 6.4')
-                        self._part_list.append((6.6,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.335-Y)<0.001 and abs(-0.386-Z)<0.001:
-                    if not (6.5,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 6.5')
-                        self._part_list.append((6.5,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.515-Y)<0.001 and abs(-0.386-Z)<0.001:
-                    if not (6.6,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 6.6')
-                        self._part_list.append((6.4,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.155-Y)<0.001 and abs(-0.206-Z)<0.001:
-                    if not (6.1,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 6.1')
-                        self._part_list.append((6.1,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.335-Y)<0.001 and abs(-0.206-Z)<0.001:
-                    if not (6.2,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 6.2')
-                        self._part_list.append((6.2,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.515-Y)<0.001 and abs(-0.206-Z)<0.001:
-                    if not (6.3,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 6.3')
-                        self._part_list.append((6.3,[X,Y,Z],[oX,oY,oZ,oW]))
-
-                elif abs(-0.155-Y)<0.001 and abs(0.184-Z)<0.001:
-                    if not (7.7,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 7.7')
-                        self._part_list.append((7.9,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.335-Y)<0.001 and abs(0.184-Z)<0.001:
-                    if not (7.8,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 7.8')
-                        self._part_list.append((7.8,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.515-Y)<0.001 and abs(0.184-Z)<0.001:
-                    if not (7.9,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 7.9')
-                        self._part_list.append((7.7,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.155-Y)<0.001 and abs(0.364-Z)<0.001:
-                    if not (7.4,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 7.4')
-                        self._part_list.append((7.6,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.335-Y)<0.001 and abs(0.364-Z)<0.001:
-                    if not (7.5,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 7.5')
-                        self._part_list.append((7.5,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.515-Y)<0.001 and abs(0.364-Z)<0.001:
-                    if not (7.6,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 7.6')
-                        self._part_list.append((7.4,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.155-Y)<0.001 and abs(0.544-Z)<0.001:
-                    if not (7.1,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 7.1')
-                        self._part_list.append((7.1,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.335-Y)<0.001 and abs(0.544-Z)<0.001:
-                    if not (7.2,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 7.2')
-                        self._part_list.append((7.2,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(-0.515-Y)<0.001 and abs(0.544-Z)<0.001:
-                    if not (7.3,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 7.3')
-                        self._part_list.append((7.3,[X,Y,Z],[oX,oY,oZ,oW]))
-
-                elif abs(0.595-Y)<0.001 and abs(0.184-Z)<0.001:
-                    if not (8.7,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 8.7')
-                        self._part_list.append((8.9,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.415-Y)<0.001 and abs(0.184-Z)<0.001:
-                    if not (8.8,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 8.8')
-                        self._part_list.append((8.8,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.235-Y)<0.001 and abs(0.184-Z)<0.001:
-                    if not (8.9,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 8.9')
-                        self._part_list.append((8.7,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.595-Y)<0.001 and abs(0.364-Z)<0.001:
-                    if not (8.4,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 8.4')
-                        self._part_list.append((8.6,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.415-Y)<0.001 and abs(0.364-Z)<0.001:
-                    if not (8.5,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 8.5')
-                        self._part_list.append((8.5,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.235-Y)<0.001 and abs(0.364-Z)<0.001:
-                    if not (8.6,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 8.6')
-                        self._part_list.append((8.4,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.595-Y)<0.001 and abs(0.544-Z)<0.001:
-                    if not (8.1,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 8.1')
-                        self._part_list.append((8.1,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.415-Y)<0.001 and abs(0.544-Z)<0.001:
-                    if not (8.2,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 8.2')
-                        self._part_list.append((8.2,[X,Y,Z],[oX,oY,oZ,oW]))
-                elif abs(0.235-Y)<0.001 and abs(0.544-Z)<0.001:
-                    if not (8.3,[X,Y,Z],[oX,oY,oZ,oW]) in self._part_list:
-                        self.get_logger().info('Found Item in bin 8.3')
-                        self._part_list.append((8.3,[X,Y,Z],[oX,oY,oZ,oW]))
-                
-                # self.get_logger().info(f'Part {i+1} Orientation: {oX} ,{oY} ,{oZ}, {oW}')
             
         except Exception as e:
             self.get_logger().error('Failed to convert image: %r' % (e,))
@@ -467,7 +187,8 @@ class ImageSubscriber(Node):
                 self.get_logger().info(f'Part {i+1} Orientation: {oX} ,{oY} ,{oZ}, {oW}')
         except Exception as e:
             self.get_logger().error('Failed to convert image: %r' % (e,))   
-    def _colour_identification_right(self):
+    
+    def _colour_identification_right(self,image):
         bin_crops_right = {
                 1.9: (0, 70, 115, 178),
                 1.8: (0, 70, 178, 236),
@@ -492,7 +213,7 @@ class ImageSubscriber(Node):
                 2.9: (0, 70, 354, 417),
                 2.8: (0, 70, 417, 481),
                 2.7: (0, 70, 481, 546),
-                2.6: (70, 145, 354, 417),
+                2.6: (65, 145, 354, 417),
                 2.5: (70, 145, 417, 481),
                 2.4: (70, 145, 481, 546),
                 2.3: (145, 211, 354, 417),
@@ -518,7 +239,7 @@ class ImageSubscriber(Node):
         }
         
 
-        img_right = cv2.imread('right_bin_image.png')
+        img_right = image
         if img_right is None:
             self.get_logger().error('Right bin image did not load.')
             return
@@ -530,8 +251,8 @@ class ImageSubscriber(Node):
 
         results = {}
         sift = cv2.SIFT_create()
-
-        for bin, coords in bin_crops_right.items():
+        for detected_parts in self._right_part_list:
+            coords = bin_crops_right.get(detected_parts)
             cropped_image = img_right[coords[0]:coords[1], coords[2]:coords[3]]
             hsv_cropped_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2HSV)
             mask_total = np.zeros(cropped_image.shape[:2], dtype="uint8")
@@ -549,8 +270,8 @@ class ImageSubscriber(Node):
                     dominant_color = color
             
             segmented_image = cv2.bitwise_and(cropped_image, cropped_image, mask=mask)
-
-            kp1, des1 = sift.detectAndCompute(cropped_image, None)
+            cropped_image_gray = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2GRAY)
+            kp1, des1 = sift.detectAndCompute(cropped_image_gray, None)
             match_scores = {}
             max_matches = 0
             best_component = 'None'
@@ -563,19 +284,48 @@ class ImageSubscriber(Node):
                     max_matches = len(matches)
                     best_component = name
 
-            results[bin] = {
-                'Dominant Color': dominant_color,
-                'Best Component': best_component,
+            results[detected_parts] = {
+                'Bin': detected_parts,
+                'Color': dominant_color,
+                'Component': best_component,
                 'Max Matches': max_matches
             }
+            
 
-        for bin, data in results.items():
-            if data['Max Matches'] > 0:  
-                self.get_logger().info(f'Bin {bin}: Dominant Color - {data["Dominant Color"]}, Best Match - {data["Best Component"]} ({data["Max Matches"]} matches)')
+        for detected_parts, data in results.items():
+                ort = self._part_dic.get(detected_parts)
+                if ort is None:
+                    self.get_logger().error(f"Orientation data not found for {detected_parts}")
+                    continue
+
+                ort_var = {'X': ort[0], 'Y': ort[1], 'Z': ort[2], 'roll': ort[3], 'pitch': ort[4], 'yaw': ort[5], 'w': ort[6]}
+                list_color = ['green', 'orange', 'blue', 'red', 'purple']
+                list_component = ['Sensor', 'Battery', 'Regulator', 'Pump']
+                dominant_color = data["Color"].lower()  
+                best_component = data["Component"]      
+
+                for color in list_color:
+                    for component in list_component:
+                        if dominant_color == color.lower() and best_component == component:
+                            attr_name = f"_{color.lower()}_{component.lower()}"
+                            target_list = getattr(self, attr_name, None)
+                            if target_list is not None:
+                                target_list.append(ort_var)
+                                setattr(self, attr_name, target_list)
+                            else:
+                                self.get_logger().error(f"Attribute {attr_name} not found on {self}")
+
+                if data['Max Matches'] > 0:  
+                    self.get_logger().info(
+                        f'Bin {detected_parts}: Color - {data["Color"]}, Best Match - {data["Component"]} '
+                        f'({data["Max Matches"]} matches), Orientation X - {ort_var["X"]}, Y - {ort_var["Y"]}, Z - {ort_var["Z"]}, '
+                        f'roll - {ort_var["roll"]}, pitch - {ort_var["pitch"]}, yaw - {ort_var["yaw"]}, w - {ort_var["w"]}'
+                    )
+
+        # self.get_logger().info(f'Green Sensor: {self._green_sensor}')
 
     
-    
-    def _colour_identification_left(self):
+    def _colour_identification_left(self, image):
         bin_crops_left ={
             6.9: (22, 83, 141, 206),
             6.8: (22, 83, 206, 263),
@@ -627,7 +377,7 @@ class ImageSubscriber(Node):
         }
         
 
-        img_left = cv2.imread('left_bin_image.png')
+        img_left = image
         if img_left is None:
             self.get_logger().error('Left bin image did not load.')
             return
@@ -640,7 +390,9 @@ class ImageSubscriber(Node):
         results = {}
         sift = cv2.SIFT_create()
 
-        for bin, coords in bin_crops_left.items():
+    
+        for detected_parts in self._left_part_list:
+            coords = bin_crops_left.get(detected_parts)
             cropped_image = img_left[coords[0]:coords[1], coords[2]:coords[3]]
             hsv_cropped_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2HSV)
             mask_total = np.zeros(cropped_image.shape[:2], dtype="uint8")
@@ -658,8 +410,8 @@ class ImageSubscriber(Node):
                     dominant_color = color
             
             segmented_image = cv2.bitwise_and(cropped_image, cropped_image, mask=mask)
-
-            kp1, des1 = sift.detectAndCompute(cropped_image, None)
+            cropped_image_gray = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2GRAY)
+            kp1, des1 = sift.detectAndCompute(cropped_image_gray, None)
             match_scores = {}
             max_matches = 0
             best_component = 'None'
@@ -672,22 +424,49 @@ class ImageSubscriber(Node):
                     max_matches = len(matches)
                     best_component = name
 
-            results[bin] = {
-                'Dominant Color': dominant_color,
-                'Best Component': best_component,
+            results[detected_parts] = {
+                'Bin': detected_parts,
+                'Color': dominant_color,
+                'Component': best_component,
                 'Max Matches': max_matches
             }
 
-        for bin, data in results.items():
-            if data['Max Matches'] > 0:  
-                self.get_logger().info(f'Bin {bin}: Dominant Color - {data["Dominant Color"]}, Best Match - {data["Best Component"]} ({data["Max Matches"]} matches)')
+        for detected_parts, data in results.items():
+                ort = self._part_dic.get(detected_parts)
+                if ort is None:
+                    self.get_logger().error(f"Orientation data not found for {detected_parts}")
+                    continue
+
+                ort_var = {'X': ort[0], 'Y': ort[1], 'Z': ort[2], 'roll': ort[3], 'pitch': ort[4], 'yaw': ort[5], 'w': ort[6]}
+                list_color = ['green', 'orange', 'blue', 'red', 'purple']
+                list_component = ['Sensor', 'Battery', 'Regulator', 'Pump']
+                dominant_color = data["Color"].lower()  
+                best_component = data["Component"]      
+
+                for color in list_color:
+                    for component in list_component:
+                        if dominant_color == color.lower() and best_component == component:
+                            attr_name = f"_{color.lower()}_{component.lower()}"
+                            target_list = getattr(self, attr_name, None)
+                            if target_list is not None:
+                                target_list.append(ort_var)
+                                setattr(self, attr_name, target_list)
+                            else:
+                                self.get_logger().error(f"Attribute {attr_name} not found on {self}")
+
+                if data['Max Matches'] > 0:  
+                    self.get_logger().info(
+                        f'Bin {detected_parts}: Color - {data["Color"]}, Best Match - {data["Component"]} '
+                        f'({data["Max Matches"]} matches), Orientation X - {ort_var["X"]}, Y - {ort_var["Y"]}, Z - {ort_var["Z"]}, '
+                        f'roll - {ort_var["roll"]}, pitch - {ort_var["pitch"]}, yaw - {ort_var["yaw"]}, w - {ort_var["w"]}'
+                    )
 
     def match_keypoints(self, descriptors1, descriptors2):
         bf = cv2.BFMatcher()
         matches = bf.knnMatch(descriptors1, descriptors2, k=2)
         good = []
         for m, n in matches:
-            if m.distance < 0.8 * n.distance:
+            if m.distance < 0.98 * n.distance:
                 good.append(m)
         return good
 
