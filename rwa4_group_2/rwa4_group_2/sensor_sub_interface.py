@@ -7,6 +7,12 @@ from .aruco_detector_interface import ArucoDetector
 from cv_bridge import CvBridge
 import cv2
 import numpy as np
+from geometry_msgs.msg import TransformStamped
+import tf2_ros
+from tf2_ros import TransformBroadcaster
+from tf2_ros import TransformException
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
 import math
 
 class ImageSubscriber(Node):
@@ -15,6 +21,17 @@ class ImageSubscriber(Node):
         self._left_part_list=[]
         self._right_part_list=[]
         self._part_dic = {}
+        # Information for broadcasting
+        self._part_parent_frame = None
+        self._part_frame = None
+        # Initialize the transform broadcaster
+        self.tf_broadcaster = TransformBroadcaster(self)
+
+        self._tf_buffer = Buffer()
+        self._tf_listener = TransformListener(self._tf_buffer, self)
+      
+
+
         colors = ['green', 'orange', 'blue', 'red', 'yellow', 'purple']
         components = ['sensor', 'battery', 'regulator', 'pump']
         for color in colors:
@@ -22,14 +39,152 @@ class ImageSubscriber(Node):
                 attr_name = f"_{color}_{component}"
                 setattr(self, attr_name, [])
         self.right_bins_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/right_bins_camera/image",self._right_bins_camera_cb, qos_profile_sensor_data)
-        self.right_bins_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/right_bins_rgb_camera/rgb_image",self._right_bins_rgb_camera_cb,10)
+        # self.right_bins_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/right_bins_rgb_camera/rgb_image",self._right_bins_rgb_camera_cb,10)
         self.left_bins_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/left_bins_camera/image",self._left_bins_camera_cb, qos_profile_sensor_data)
-        self.left_bins_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/left_bins_rgb_camera/rgb_image",self._left_bins_rgb_camera_cb,10)
+        # self.left_bins_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/left_bins_rgb_camera/rgb_image",self._left_bins_rgb_camera_cb,10)
         # self.kts1_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/kts1_rgb_camera/rgb_image",self._kts1_rgb_camera_cb,10)
         # self.kts1_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/kts1_camera/image",self._kts1_camera_cb,qos_profile_sensor_data)
         # self.kts2_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/kts2_rgb_camera/rgb_image",self._kts2_rgb_camera_cb,10)
         # self.kts2_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/kts2_camera/image",self._kts2_camera_cb,qos_profile_sensor_data)
         self._bridge = CvBridge()
+
+    def quaternion_to_euler(self,quaternion):
+        
+        x,y,z,w=quaternion.x, quaternion.y, quaternion.z, quaternion.w
+        
+
+        """
+        Convert a quaternion into euler angles (roll, pitch, yaw)
+        roll is rotation around x in radians (counterclockwise)
+        pitch is rotation around y in radians (counterclockwise)
+        yaw is rotation around z in radians (counterclockwise)
+        """
+        # t0 = +2.0 * (w * x + y * z)
+        # t1 = +1.0 - 2.0 * (x * x + y * y)
+        # roll = math.atan2(t0, t1)
+     
+        # t2 = +2.0 * (w * y - z * x)
+        # # t2 = +1.0 if t2 > +1.0 else t2
+        # # t2 = -1.0 if t2 < -1.0 else t2
+        # pitch = math.asin(t2)
+     
+        # t3 = +2.0 * (w * z + x * y)
+        # t4 = +1.0 - 2.0 * (y * y + z * z)
+        # yaw = math.atan2(t3, t4)
+     
+
+
+        # roll, pitch, yaw = euler
+        
+        # output = "\n"
+        # output += "=" * 50 + "\n"
+        # output += f"Roll: : {math.degrees(roll)}\n"
+        # output += f"Pitch: : {math.degrees(pitch)}\n"
+        # output += f"Yaw: : {math.degrees(yaw)}\n"
+        # output += "=" * 50 + "\n"
+
+
+        # roll (x-axis rotation)
+        sinr_cosp = +2.0 * (w * x + y * z)
+        cosr_cosp = +1.0 - 2.0 * (x * x + y * y)
+        roll = math.atan2(sinr_cosp, cosr_cosp)
+
+        # pitch (y-axis rotation)
+        sinp = +2.0 * (w * y - z * x)
+        if (math.fabs(sinp) >= 1):
+            pitch = math.copysign(math.M_PI / 2, sinp) # use 90 degrees if out of range
+        else:
+            pitch = math.asin(sinp)
+
+        # yaw (z-axis rotation)
+        siny_cosp = +2.0 * (w * z + x * y)
+        cosy_cosp = +1.0 - 2.0 * (y * y + z * z)  
+        yaw = math.atan2(siny_cosp, cosy_cosp)
+
+        return roll, pitch, yaw
+
+    def generate_transform(self, parent, child, pose):
+        """
+        Build a transform message and append it to the list of transforms to be broadcast.
+
+        Args:
+            parent (str): Parent frame.
+            child (str): Child frame.
+            pose (geometry_msgs.msg.Pose): Pose of the child frame with respect to the parent frame.
+
+        """
+        transform_stamped = TransformStamped()
+
+        transform_stamped.header.stamp = self.get_clock().now().to_msg()
+        transform_stamped.header.frame_id = parent
+        transform_stamped.child_frame_id = child
+
+        transform_stamped.transform.translation.x = pose.position.x
+        transform_stamped.transform.translation.y = pose.position.y
+        transform_stamped.transform.translation.z = pose.position.z
+        transform_stamped.transform.rotation.x = pose.orientation.x
+        transform_stamped.transform.rotation.y = pose.orientation.y
+        transform_stamped.transform.rotation.z = pose.orientation.z
+        transform_stamped.transform.rotation.w = pose.orientation.w
+
+        # self._transforms.append(transform_stamped)
+        # Send the transformation
+        self.tf_broadcaster.sendTransform(transform_stamped)
+
+        trans_pose=self._listener_cb(child)
+        return trans_pose
+
+    
+    # def _right_broadcaster_part_pose(self, msg):
+    #     t = TransformStamped()
+
+    #     # Read message content and assign it to
+    #     # corresponding tf variables
+    #     t.header.stamp = self.get_clock().now().to_msg()
+    #     t.header.frame_id = 'world'
+    #     t.child_frame_id = 'right_bins_camera_frame'
+
+       
+    #     t.transform.translation.x = msg[0]
+    #     t.transform.translation.y = msg[1]
+    #     t.transform.translation.z = msg[2]
+
+        
+    #     t.transform.rotation.x = msg[3]
+    #     t.transform.rotation.y = msg[4]
+    #     t.transform.rotation.z = msg[5]
+    #     t.transform.rotation.w = msg[6]
+
+    #     # Send the transformation
+    #     self.tf_broadcaster.sendTransform(t)
+
+    def _listener_cb(self,child):
+        """
+        Callback function for the listener timer.
+        """
+        try:
+            if self._part_parent_frame is None:
+                self.get_logger().warn("Part parent frame is not set.")
+                return            
+            # Get the transform between frames
+            t = self._tf_buffer.lookup_transform("world", child, rclpy.time.Time())
+            transformed_x=t.transform.translation.x
+            transformed_y=t.transform.translation.y
+            transformed_z=t.transform.translation.z
+            quat=t.transform.rotation
+            self.get_logger().info(f'DETECTED part  orientation: {quat}')
+
+            r,p,y=self.quaternion_to_euler(quat)
+            self.get_logger().info(f"Transform between world and {child}: \n"+ str(t.transform.translation)+ str(r)+ str(p)+ str(y))
+            transformed_part_pose=[transformed_x,transformed_y,transformed_z,r,p,y]
+            return transformed_part_pose
+        
+        except TransformException as ex:
+            self.get_logger().fatal(
+                f"Could not get transform between world and {child}: {str(ex)}"
+            )
+            return
+
     def _right_bins_rgb_camera_cb(self,msg):
         try:
             cv_image = self._bridge.imgmsg_to_cv2(msg, "bgr8")
@@ -42,6 +197,7 @@ class ImageSubscriber(Node):
             if len(msg._part_poses) == 0:
                 self.get_logger().info('NO Part DETECTED')
             for i, part_pose in enumerate(msg._part_poses):
+<<<<<<< Updated upstream
                 # self.get_logger().info(f'DETECTED part {i+1} ')
                 X=part_pose.position.x
                 Y=part_pose.position.y
@@ -50,6 +206,27 @@ class ImageSubscriber(Node):
                 oY=part_pose.orientation.y
                 oZ=part_pose.orientation.z
                 oW=part_pose.orientation.w
+=======
+                self.get_logger().info(f'DETECTED part {i+1} ')
+                # X=part_pose.position.x
+                # Y=part_pose.position.y
+                # Z=part_pose.position.z
+                # oX=part_pose.orientation.x
+                # oY=part_pose.orientation.y
+                # oZ=part_pose.orientation.z
+                # oW=part_pose.orientation.w
+
+                self._part_parent_frame = "right_bins_camera_frame"
+                self._part_frame = f"right_bin_part_{i+1}_frame"
+                # self._right_broadcaster_part_pose(pose)
+                trans_coords =self.generate_transform(self._part_parent_frame, self._part_frame, part_pose)
+                X=trans_coords[0]
+                Y=trans_coords[1]
+                Z=trans_coords[2]
+                oX=trans_coords[3]
+                oY=trans_coords[4]
+                oZ=trans_coords[5]
+>>>>>>> Stashed changes
 
                 _Y_axis=[-0.595,-0.415,-0.235,0.155,0.335,0.515]
                 _Z_axis=[-0.566,-0.386,-0.206,0.184,0.364,0.544]
@@ -69,7 +246,7 @@ class ImageSubscriber(Node):
                             if slot not in self._right_part_list:
                                 self.get_logger().info(f'Found Item in bin {i},{j},{counter},{slot}')
                                 self._right_part_list.append(slot)
-                                self._part_dic.update({(slot):(X,Y,Z, oX,oY,oZ,oW)})
+                                self._part_dic.update({(slot):(X,Y,Z, oX,oY,oZ)})
 
             
         except Exception as e:
@@ -96,6 +273,21 @@ class ImageSubscriber(Node):
                 oY=part_pose.orientation.y
                 oZ=part_pose.orientation.z
                 oW=part_pose.orientation.w
+
+                self._part_parent_frame = "left_bins_camera_frame"
+                self._part_frame = f"left bin_part_{i+1}_frame"
+                # self._right_broadcaster_part_pose(pose)
+                trans_coords =self.generate_transform(self._part_parent_frame, self._part_frame, part_pose)
+                X=trans_coords[0]
+                Y=trans_coords[1]
+                Z=trans_coords[2]
+                oX=trans_coords[3]
+                oY=trans_coords[4]
+                oZ=trans_coords[5]
+
+
+
+
                 _Y_axis=[-0.515,-0.335,-0.155,0.235,0.415,0.595]
                 _Z_axis=[-0.566,-0.386,-0.206,0.184,0.364,0.544]
                 _slot_val={1:6.9,2:6.8,3:6.7,4:5.9,5:5.8,6:5.7,
