@@ -7,7 +7,6 @@ from .aruco_detector_interface import ArucoDetector
 from cv_bridge import CvBridge
 import cv2
 import numpy as np
-from geometry_msgs.msg import Pose
 from geometry_msgs.msg import TransformStamped
 import tf2_ros
 from tf2_ros import TransformBroadcaster
@@ -43,19 +42,11 @@ class ImageSubscriber(Node):
         self.right_bins_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/right_bins_rgb_camera/rgb_image",self._right_bins_rgb_camera_cb,10)
         self.left_bins_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/left_bins_camera/image",self._left_bins_camera_cb, qos_profile_sensor_data)
         self.left_bins_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/left_bins_rgb_camera/rgb_image",self._left_bins_rgb_camera_cb,10)
-        self.kts1_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/kts1_rgb_camera/rgb_image",self._kts1_rgb_camera_cb,10)
-        self.kts1_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/kts1_camera/image",self._kts1_camera_cb,qos_profile_sensor_data)
-        self.kts2_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/kts2_rgb_camera/rgb_image",self._kts2_rgb_camera_cb,10)
-        self.kts2_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/kts2_camera/image",self._kts2_camera_cb,qos_profile_sensor_data)
+        # self.kts1_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/kts1_rgb_camera/rgb_image",self._kts1_rgb_camera_cb,10)
+        # self.kts1_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/kts1_camera/image",self._kts1_camera_cb,qos_profile_sensor_data)
+        # self.kts2_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/kts2_rgb_camera/rgb_image",self._kts2_rgb_camera_cb,10)
+        # self.kts2_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/kts2_camera/image",self._kts2_camera_cb,qos_profile_sensor_data)
         self._bridge = CvBridge()
-        self._colour_identification_right()
-        self._colour_identification_left()
-        self._kts2_tray_data ={}
-        self._kts1_tray_data ={}
-        self._kts_tray_data_combined = {}
-        self._kts1_pos_data = {'tray_poses': []}
-        self._kts2_pos_data = {'tray_poses': []}
-        self._kts_pos_slot = {}
 
     def quaternion_to_euler(self,quaternion):
         
@@ -197,6 +188,7 @@ class ImageSubscriber(Node):
     def _right_bins_rgb_camera_cb(self,msg):
         try:
             cv_image = self._bridge.imgmsg_to_cv2(msg, "bgr8")
+            # cv2.imwrite("Right Bin Camera", cv_image)
             self._colour_identification_right(cv_image)
         except Exception as e:
             self.get_logger().error('Failed to convert image: %r' % (e,))
@@ -206,7 +198,6 @@ class ImageSubscriber(Node):
             if len(msg._part_poses) == 0:
                 self.get_logger().info('NO Part DETECTED')
             for i, part_pose in enumerate(msg._part_poses):
-<<<<<<< Updated upstream
                 # self.get_logger().info(f'DETECTED part {i+1} ')
                 X=part_pose.position.x
                 Y=part_pose.position.y
@@ -215,27 +206,6 @@ class ImageSubscriber(Node):
                 oY=part_pose.orientation.y
                 oZ=part_pose.orientation.z
                 oW=part_pose.orientation.w
-=======
-                self.get_logger().info(f'DETECTED part {i+1} ')
-                # X=part_pose.position.x
-                # Y=part_pose.position.y
-                # Z=part_pose.position.z
-                # oX=part_pose.orientation.x
-                # oY=part_pose.orientation.y
-                # oZ=part_pose.orientation.z
-                # oW=part_pose.orientation.w
-
-                self._part_parent_frame = "right_bins_camera_frame"
-                self._part_frame = f"right_bin_part_{i+1}_frame"
-                # self._right_broadcaster_part_pose(pose)
-                trans_coords =self.generate_transform(self._part_parent_frame, self._part_frame, part_pose)
-                X=trans_coords[0]
-                Y=trans_coords[1]
-                Z=trans_coords[2]
-                oX=trans_coords[3]
-                oY=trans_coords[4]
-                oZ=trans_coords[5]
->>>>>>> Stashed changes
 
                 _Y_axis=[-0.595,-0.415,-0.235,0.155,0.335,0.515]
                 _Z_axis=[-0.566,-0.386,-0.206,0.184,0.364,0.544]
@@ -245,7 +215,7 @@ class ImageSubscriber(Node):
                            19:4.9,20:4.8,21:4.7,22:3.9,23:3.8,24:3.7,
                            25:4.6,26:4.5,27:4.4,28:3.6,29:3.5,30:3.4,
                            31:4.3,32:4.2,33:4.1,34:3.3,35:3.2,36:3.1}
-
+                
                 counter=0                
                 for i, z_val in enumerate(_Z_axis):
                     for j , y_val in enumerate(_Y_axis):
@@ -255,7 +225,7 @@ class ImageSubscriber(Node):
                             if slot not in self._right_part_list:
                                 self.get_logger().info(f'Found Item in bin {i},{j},{counter},{slot}')
                                 self._right_part_list.append(slot)
-                                self._part_dic.update({(slot):(X,Y,Z, oX,oY,oZ)})
+                                self._part_dic.update({(slot):(X,Y,Z, oX,oY,oZ,oW)})
 
             
         except Exception as e:
@@ -265,6 +235,7 @@ class ImageSubscriber(Node):
     def _left_bins_rgb_camera_cb(self,msg):
         try:
             cv_image = self._bridge.imgmsg_to_cv2(msg, "bgr8")
+            # cv2.imwrite("Left Bin Camera", cv_image)
             self._colour_identification_left(cv_image)
         except Exception as e:
             self.get_logger().error('Failed to convert image: %r' % (e,))
@@ -282,21 +253,6 @@ class ImageSubscriber(Node):
                 oY=part_pose.orientation.y
                 oZ=part_pose.orientation.z
                 oW=part_pose.orientation.w
-
-                self._part_parent_frame = "left_bins_camera_frame"
-                self._part_frame = f"left bin_part_{i+1}_frame"
-                # self._right_broadcaster_part_pose(pose)
-                trans_coords =self.generate_transform(self._part_parent_frame, self._part_frame, part_pose)
-                X=trans_coords[0]
-                Y=trans_coords[1]
-                Z=trans_coords[2]
-                oX=trans_coords[3]
-                oY=trans_coords[4]
-                oZ=trans_coords[5]
-
-
-
-
                 _Y_axis=[-0.515,-0.335,-0.155,0.235,0.415,0.595]
                 _Z_axis=[-0.566,-0.386,-0.206,0.184,0.364,0.544]
                 _slot_val={1:6.9,2:6.8,3:6.7,4:5.9,5:5.8,6:5.7,
@@ -321,7 +277,6 @@ class ImageSubscriber(Node):
         except Exception as e:
             self.get_logger().error('Failed to convert image: %r' % (e,))
 
-    
     def _kts1_rgb_camera_cb(self,msg):
         try:
             kits1={}
@@ -430,7 +385,7 @@ class ImageSubscriber(Node):
                 # self.get_logger().info(f'self._kts2_pos_data:  {self._kts2_pos_data}')  
                 self.get_logger().info(f'self._kts_pos_slot:  {self._kts_pos_slot}')  
         except Exception as e:
-            self.get_logger().error('Error info: %r' % (e,))   
+            self.get_logger().error('Error info: %r' % (e,)) 
     
     def _colour_identification_right(self,image):
         bin_crops_right = {
@@ -482,6 +437,11 @@ class ImageSubscriber(Node):
                 'purple': ([125, 50, 50], [150, 255, 255])
         }
         
+        
+        component_names = ['Battery', 'Sensor', 'Regulator_', 'Pump_']
+        components = {
+            name: cv2.imread(f'{name}.png', cv2.IMREAD_GRAYSCALE) for name in component_names if cv2.imread(f'{name}.png', cv2.IMREAD_GRAYSCALE) is not None
+        }
 
         img_right = image
         # if img_right is None:
@@ -490,16 +450,12 @@ class ImageSubscriber(Node):
         # else:
         #     self.get_logger().info('Right bin image loaded successfully.')
 
-        component_names = ['Battery', 'Sensor']
-        components = {name: cv2.imread(f'{name}.png', cv2.IMREAD_GRAYSCALE) for name in component_names if cv2.imread(f'{name}.png', cv2.IMREAD_GRAYSCALE) is not None}
-
         results = {}
         sift = cv2.SIFT_create()
         for detected_parts in self._right_part_list:
             coords = bin_crops_right.get(detected_parts)
             cropped_image = img_right[coords[0]:coords[1], coords[2]:coords[3]]
             hsv_cropped_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2HSV)
-            mask_total = np.zeros(cropped_image.shape[:2], dtype="uint8")
             max_pixels = 0
             dominant_color = 'Unknown'
 
@@ -513,9 +469,7 @@ class ImageSubscriber(Node):
                     max_pixels = num_pixels
                     dominant_color = color
             
-            segmented_image = cv2.bitwise_and(cropped_image, cropped_image, mask=mask)
-            cropped_image_gray = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2GRAY)
-            kp1, des1 = sift.detectAndCompute(cropped_image_gray, None)
+            kp1, des1 = sift.detectAndCompute(cropped_image, None)
             match_scores = {}
             max_matches = 0
             best_component = 'None'
@@ -543,17 +497,14 @@ class ImageSubscriber(Node):
 
             ort_var = {
                 'X': ort[0], 'Y': ort[1], 'Z': ort[2],
-                'roll': ort[3], 'pitch': ort[4], 'yaw': ort[5], 'w': ort[6]
+                'roll': ort[3], 'pitch': ort[4], 'yaw': ort[5]
             }
 
             list_color = ['green', 'orange', 'blue', 'red', 'purple']
-            list_component = ['Sensor', 'Battery', 'Regulator', 'Pump']
-
+            list_component = ['Sensor', 'Battery', 'Reggulator', 'Pummp']
             dominant_color = data["Color"].lower()
             best_component = data["Component"]
-
-            matched = False  # Flag to indicate a successful match
-
+            matched = False 
             for color in list_color:
                 for component in list_component:
                     attr_name = f"_{color.lower()}_{component.lower()}"
@@ -562,7 +513,7 @@ class ImageSubscriber(Node):
                             target_list = getattr(self, attr_name)
                             if ort_var not in target_list:  
                                 target_list.append(ort_var)
-                                self.get_logger().info(f"Updated {attr_name}: {ort_var}")  
+                                # self.get_logger().info(f"Updated {attr_name}: {ort_var}")  
                                 matched = True
                         else:
                             self.get_logger().error(f"Attribute {attr_name} not found on {self}")
@@ -571,7 +522,7 @@ class ImageSubscriber(Node):
                 self.get_logger().info(
                     f'Bin {detected_parts}: Color - {dominant_color.title()}, Best Match - {best_component} '
                     f'({data["Max Matches"]} matches), Orientation X - {ort_var["X"]}, Y - {ort_var["Y"]}, Z - {ort_var["Z"]}, '
-                    f'roll - {ort_var["roll"]}, pitch - {ort_var["pitch"]}, yaw - {ort_var["yaw"]}, w - {ort_var["w"]}'
+                    f'roll - {ort_var["roll"]}, pitch - {ort_var["pitch"]}, yaw - {ort_var["yaw"]}'
                 )
 
     
@@ -626,6 +577,10 @@ class ImageSubscriber(Node):
                 'purple': ([125, 50, 50], [150, 255, 255])
         }
         
+        component_names = ['Battery', 'Sensor', 'Regulator_', 'Pump_']
+        components = {
+            name: cv2.imread(f'{name}.png', cv2.IMREAD_GRAYSCALE) for name in component_names if cv2.imread(f'{name}.png', cv2.IMREAD_GRAYSCALE) is not None
+        }
 
         img_left = image
         # if img_left is None:
@@ -634,17 +589,15 @@ class ImageSubscriber(Node):
         # else:
         #     self.get_logger().info('Left bin image loaded successfully.')
 
-        component_names = ['Battery', 'Sensor']
-        components = {name: cv2.imread(f'{name}.png', cv2.IMREAD_GRAYSCALE) for name in component_names if cv2.imread(f'{name}.png', cv2.IMREAD_GRAYSCALE) is not None}
-
         results = {}
         sift = cv2.SIFT_create()
-
+        # orb = cv2.ORB_create(5000)
+        
         for detected_parts in self._left_part_list:
             coords = bin_crops_left.get(detected_parts)
             cropped_image = img_left[coords[0]:coords[1], coords[2]:coords[3]]
             hsv_cropped_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2HSV)
-            mask_total = np.zeros(cropped_image.shape[:2], dtype="uint8")
+            # mask_total = np.zeros(cropped_image.shape[:2], dtype="uint8")
             max_pixels = 0
             dominant_color = 'Unknown'
 
@@ -658,7 +611,7 @@ class ImageSubscriber(Node):
                     max_pixels = num_pixels
                     dominant_color = color
             
-            segmented_image = cv2.bitwise_and(cropped_image, cropped_image, mask=mask)
+            # segmented_image = cv2.bitwise_and(cropped_image, cropped_image, mask=mask)
             cropped_image_gray = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2GRAY)
             kp1, des1 = sift.detectAndCompute(cropped_image_gray, None)
             match_scores = {}
@@ -688,7 +641,7 @@ class ImageSubscriber(Node):
 
             ort_var = {
                 'X': ort[0], 'Y': ort[1], 'Z': ort[2],
-                'roll': ort[3], 'pitch': ort[4], 'yaw': ort[5], 'w': ort[6]
+                'roll': ort[3], 'pitch': ort[4], 'yaw': ort[5]
             }
 
             list_color = ['green', 'orange', 'blue', 'yellow','red', 'purple']
@@ -707,7 +660,7 @@ class ImageSubscriber(Node):
                             target_list = getattr(self, attr_name)
                             if ort_var not in target_list:  
                                 target_list.append(ort_var)
-                                self.get_logger().info(f"Updated {attr_name}: {ort_var}")  
+                                # self.get_logger().info(f"Updated {attr_name}: {ort_var}")  
                                 matched = True
                         else:
                             self.get_logger().error(f"Attribute {attr_name} not found on {self}")
@@ -716,17 +669,17 @@ class ImageSubscriber(Node):
                 self.get_logger().info(
                     f'Bin {detected_parts}: Color - {dominant_color.title()}, Best Match - {best_component} '
                     f'({data["Max Matches"]} matches), Orientation X - {ort_var["X"]}, Y - {ort_var["Y"]}, Z - {ort_var["Z"]}, '
-                    f'roll - {ort_var["roll"]}, pitch - {ort_var["pitch"]}, yaw - {ort_var["yaw"]}, w - {ort_var["w"]}'
+                    f'roll - {ort_var["roll"]}, pitch - {ort_var["pitch"]}, yaw - {ort_var["yaw"]}'
                 )
 
 
     def match_keypoints(self, descriptors1, descriptors2):
         bf = cv2.BFMatcher()
-        matches = bf.knnMatch(descriptors1, descriptors2, k=2)
+        matches = bf.knnMatch(descriptors1, descriptors2, k=3)
         good = []
-        for m, n in matches:
-            if m.distance < 0.98 * n.distance:
-                    good.append(m)
+        for m, n, p in matches:
+            if m.distance < 0.98*n.distance<0.98*p.distance:
+                good.append(m)
             return good
 
     def get_logger(self):
