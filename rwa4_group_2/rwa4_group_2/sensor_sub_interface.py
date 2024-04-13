@@ -7,6 +7,7 @@ from .aruco_detector_interface import ArucoDetector
 from cv_bridge import CvBridge
 import cv2
 import numpy as np
+from geometry_msgs.msg import Pose
 from geometry_msgs.msg import TransformStamped
 import tf2_ros
 from tf2_ros import TransformBroadcaster
@@ -39,14 +40,22 @@ class ImageSubscriber(Node):
                 attr_name = f"_{color}_{component}"
                 setattr(self, attr_name, [])
         self.right_bins_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/right_bins_camera/image",self._right_bins_camera_cb, qos_profile_sensor_data)
-        # self.right_bins_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/right_bins_rgb_camera/rgb_image",self._right_bins_rgb_camera_cb,10)
+        self.right_bins_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/right_bins_rgb_camera/rgb_image",self._right_bins_rgb_camera_cb,10)
         self.left_bins_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/left_bins_camera/image",self._left_bins_camera_cb, qos_profile_sensor_data)
-        # self.left_bins_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/left_bins_rgb_camera/rgb_image",self._left_bins_rgb_camera_cb,10)
-        # self.kts1_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/kts1_rgb_camera/rgb_image",self._kts1_rgb_camera_cb,10)
-        # self.kts1_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/kts1_camera/image",self._kts1_camera_cb,qos_profile_sensor_data)
-        # self.kts2_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/kts2_rgb_camera/rgb_image",self._kts2_rgb_camera_cb,10)
-        # self.kts2_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/kts2_camera/image",self._kts2_camera_cb,qos_profile_sensor_data)
+        self.left_bins_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/left_bins_rgb_camera/rgb_image",self._left_bins_rgb_camera_cb,10)
+        self.kts1_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/kts1_rgb_camera/rgb_image",self._kts1_rgb_camera_cb,10)
+        self.kts1_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/kts1_camera/image",self._kts1_camera_cb,qos_profile_sensor_data)
+        self.kts2_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/kts2_rgb_camera/rgb_image",self._kts2_rgb_camera_cb,10)
+        self.kts2_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/kts2_camera/image",self._kts2_camera_cb,qos_profile_sensor_data)
         self._bridge = CvBridge()
+        self._colour_identification_right()
+        self._colour_identification_left()
+        self._kts2_tray_data ={}
+        self._kts1_tray_data ={}
+        self._kts_tray_data_combined = {}
+        self._kts1_pos_data = {'tray_poses': []}
+        self._kts2_pos_data = {'tray_poses': []}
+        self._kts_pos_slot = {}
 
     def quaternion_to_euler(self,quaternion):
         
@@ -315,6 +324,7 @@ class ImageSubscriber(Node):
     
     def _kts1_rgb_camera_cb(self,msg):
         try:
+            kits1={}
             detect_kts1 = ArucoDetector("KTS1")
             cv_image = self._bridge.imgmsg_to_cv2(msg, 'bgr8')
             kits_1_aruco_crops = [
@@ -323,32 +333,53 @@ class ImageSubscriber(Node):
             {"x1": 490, "y1": 199, "x2": 535, "y2": 244},
             ]
             for crop in kits_1_aruco_crops:
-                self._kts1_tray_data = detect_kts1.crop_aruco(cv_image, crop["x1"], crop["y1"], crop["x2"], crop["y2"], detect_kts1._aruco_dict)
-            self.get_logger().info(f'Kts1  - Tray data: {self._kts1_tray_data}')
+                kits1= detect_kts1.crop_aruco(cv_image, crop["x1"], crop["y1"], crop["x2"], crop["y2"], detect_kts1._aruco_dict)
+            self._kts1_tray_data = kits1
+            for key in set(self._kts1_tray_data.keys()) | set(self._kts2_tray_data.keys()):
+                combined_tray_data = self._kts1_tray_data.get(key, []) + self._kts2_tray_data.get(key, [])
+                self._kts_tray_data_combined[key] = combined_tray_data
+            self.get_logger().info(f'Kts combined  - Tray data: {self._kts_tray_data_combined}')
         
         except Exception as e:
-            self.get_logger().error('Failed to convert image: %r' % (e,))
+            self.get_logger().error('Error type  : %r' % (e,))
     
     def _kts1_camera_cb(self,msg):
         try:
-            if len(msg._tray_poses) == 0:
+            if len(msg.tray_poses) == 0:
                 self.get_logger().info('NO Tray DETECTED')
-            for i, tray_pose in enumerate(msg._tray_poses):
-                self.get_logger().info(f'DETECTED part {i+1} in LEFT Tray')
-                X=tray_pose.position.x
-                Y=tray_pose.position.y
-                Z=tray_pose.position.z
-                oX=tray_pose.orientation.x
-                oY=tray_pose.orientation.y
-                oZ=tray_pose.orientation.z
-                oW=tray_pose.orientation.w
-                self.get_logger().info(f'Part {i+1} Position: {X} ,{Y} ,{Z}')
-                self.get_logger().info(f'Part {i+1} Orientation: {oX} ,{oY} ,{oZ}, {oW}')
+            else:
+                temp_tray_pos = []
+                for tray_pose in msg.tray_poses:
+                    temp_tray_pos.append({
+                        'position': (tray_pose.position.x, tray_pose.position.y, tray_pose.position.z),
+                        'orientation': (tray_pose.orientation.x, tray_pose.orientation.y, tray_pose.orientation.z, tray_pose.orientation.w)
+                    })
+                self._kts1_pos_data['tray_poses'] = temp_tray_pos
+                if 'tray_poses' not in self._kts1_pos_data or not self._kts1_pos_data['tray_poses']:
+                    self.get_logger().warn("No tray poses found in self._kts1_pos_data")
+                else:  
+                    for i, tray_pose in enumerate(self._kts1_pos_data['tray_poses']):
+                        position = tray_pose['position']
+                        orientation = tray_pose['orientation']
+                        y_value = position[1]
+                        slot = None
+                        if 0.615 >= y_value >= 0.215:
+                            slot = 1
+                        elif 0.215 > y_value > -0.215:
+                            slot = 2
+                        elif -0.215 >= y_value >= -0.645:
+                            slot = 3
+                        else:
+                            slot = None
+                        self._kts_pos_slot[slot] = (position, orientation)
+                # self.get_logger().info(f'self._kts2_pos_data:  {self._kts2_pos_data}')  
+                self.get_logger().info(f'self._kts_pos_slot:  {self._kts_pos_slot}')  
         except Exception as e:
-            self.get_logger().error('Failed to convert image: %r' % (e,))
+            self.get_logger().error('Error info: %r' % (e,))
 
     def _kts2_rgb_camera_cb(self,msg):
         try:
+            kits2 ={}
             detect_kts2 = ArucoDetector("KTS2")
             cv_image = self._bridge.imgmsg_to_cv2(msg, 'bgr8')
             kits_2_aruco_crops = [
@@ -357,28 +388,49 @@ class ImageSubscriber(Node):
             {"x1": 490, "y1": 199, "x2": 535, "y2": 244},
             ]
             for crop in kits_2_aruco_crops:
-                self._kts2_tray_data = detect_kts2.crop_aruco(cv_image, crop["x1"], crop["y1"], crop["x2"], crop["y2"], detect_kts2._aruco_dict)
-            self.get_logger().info(f'Kts2  - Tray data: {self._kts2_tray_data}')
+                kits2= detect_kts2.crop_aruco(cv_image, crop["x1"], crop["y1"], crop["x2"], crop["y2"], detect_kts2._aruco_dict)
+            self._kts2_tray_data = kits2
+            for key in set(self._kts1_tray_data.keys()) | set(self._kts2_tray_data.keys()):
+                combined_tray_data = self._kts1_tray_data.get(key, []) + self._kts2_tray_data.get(key, [])
+                self._kts_tray_data_combined[key] = combined_tray_data
+            self.get_logger().info(f'Kts combined  - Tray data: {self._kts_tray_data_combined}')
+            
         except Exception as e:
-            self.get_logger().error('Failed to convert image: %r' % (e,))
+            self.get_logger().error('Error info : %r' % (e,))
     
     def _kts2_camera_cb(self,msg):
         try:
-            if len(msg._tray_poses) == 0:
+            if len(msg.tray_poses) == 0:
                 self.get_logger().info('NO Tray DETECTED')
-            for i, tray_pose in enumerate(msg._tray_poses):
-                self.get_logger().info(f'DETECTED part {i+1} in LEFT Tray')
-                X=tray_pose.position.x
-                Y=tray_pose.position.y
-                Z=tray_pose.position.z
-                oX=tray_pose.orientation.x
-                oY=tray_pose.orientation.y
-                oZ=tray_pose.orientation.z
-                oW=tray_pose.orientation.w
-                self.get_logger().info(f'Part {i+1} Position: {X} ,{Y} ,{Z}')
-                self.get_logger().info(f'Part {i+1} Orientation: {oX} ,{oY} ,{oZ}, {oW}')
+            else:
+                temp_tray_pos = []
+                for tray_pose in msg.tray_poses:
+                    temp_tray_pos.append({
+                        'position': (tray_pose.position.x, tray_pose.position.y, tray_pose.position.z),
+                        'orientation': (tray_pose.orientation.x, tray_pose.orientation.y, tray_pose.orientation.z, tray_pose.orientation.w)
+                    })
+                self._kts2_pos_data['tray_poses'] = temp_tray_pos
+                if 'tray_poses' not in self._kts2_pos_data or not self._kts2_pos_data['tray_poses']:
+                    self.get_logger().warn("No tray poses found in self._kts1_pos_data")
+                else:  
+                    for i, tray_pose in enumerate(self._kts2_pos_data['tray_poses']):
+                        position = tray_pose['position']
+                        orientation = tray_pose['orientation']
+                        y_value = position[1]
+                        slot = None
+                        if 0.615 >= y_value >= 0.215:
+                            slot = 4
+                        elif 0.215 > y_value > -0.215:
+                            slot = 5
+                        elif -0.215 >= y_value >= -0.645:
+                            slot = 6
+                        else:
+                            slot = None
+                        self._kts_pos_slot[slot] = (position, orientation)
+                # self.get_logger().info(f'self._kts2_pos_data:  {self._kts2_pos_data}')  
+                self.get_logger().info(f'self._kts_pos_slot:  {self._kts_pos_slot}')  
         except Exception as e:
-            self.get_logger().error('Failed to convert image: %r' % (e,))   
+            self.get_logger().error('Error info: %r' % (e,))   
     
     def _colour_identification_right(self,image):
         bin_crops_right = {
