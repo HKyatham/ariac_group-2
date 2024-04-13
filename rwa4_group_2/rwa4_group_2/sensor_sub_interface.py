@@ -42,7 +42,7 @@ class ImageSubscriber(Node):
             if len(msg._part_poses) == 0:
                 self.get_logger().info('NO Part DETECTED')
             for i, part_pose in enumerate(msg._part_poses):
-                self.get_logger().info(f'DETECTED part {i+1} ')
+                # self.get_logger().info(f'DETECTED part {i+1} ')
                 X=part_pose.position.x
                 Y=part_pose.position.y
                 Z=part_pose.position.z
@@ -88,7 +88,7 @@ class ImageSubscriber(Node):
             if len(msg._part_poses) == 0:
                 self.get_logger().info('NO Part DETECTED')
             for i, part_pose in enumerate(msg._part_poses):
-                self.get_logger().info(f'DETECTED part {i+1} in LEFT BIN')
+                # self.get_logger().info(f'DETECTED part {i+1} in LEFT BIN')
                 X=part_pose.position.x
                 Y=part_pose.position.y
                 Z=part_pose.position.z
@@ -240,11 +240,11 @@ class ImageSubscriber(Node):
         
 
         img_right = image
-        if img_right is None:
-            self.get_logger().error('Right bin image did not load.')
-            return
-        else:
-            self.get_logger().info('Right bin image loaded successfully.')
+        # if img_right is None:
+        #     self.get_logger().error('Right bin image did not load.')
+        #     return
+        # else:
+        #     self.get_logger().info('Right bin image loaded successfully.')
 
         component_names = ['Battery', 'Sensor']
         components = {name: cv2.imread(f'{name}.png', cv2.IMREAD_GRAYSCALE) for name in component_names if cv2.imread(f'{name}.png', cv2.IMREAD_GRAYSCALE) is not None}
@@ -291,38 +291,44 @@ class ImageSubscriber(Node):
                 'Max Matches': max_matches
             }
             
-
         for detected_parts, data in results.items():
-                ort = self._part_dic.get(detected_parts)
-                if ort is None:
-                    self.get_logger().error(f"Orientation data not found for {detected_parts}")
-                    continue
+            ort = self._part_dic.get(detected_parts)
+            if ort is None:
+                self.get_logger().error(f"Orientation data not found for {detected_parts}")
+                continue
 
-                ort_var = {'X': ort[0], 'Y': ort[1], 'Z': ort[2], 'roll': ort[3], 'pitch': ort[4], 'yaw': ort[5], 'w': ort[6]}
-                list_color = ['green', 'orange', 'blue', 'red', 'purple']
-                list_component = ['Sensor', 'Battery', 'Regulator', 'Pump']
-                dominant_color = data["Color"].lower()  
-                best_component = data["Component"]      
+            ort_var = {
+                'X': ort[0], 'Y': ort[1], 'Z': ort[2],
+                'roll': ort[3], 'pitch': ort[4], 'yaw': ort[5], 'w': ort[6]
+            }
 
-                for color in list_color:
-                    for component in list_component:
-                        if dominant_color == color.lower() and best_component == component:
-                            attr_name = f"_{color.lower()}_{component.lower()}"
-                            target_list = getattr(self, attr_name, None)
-                            if target_list is not None:
+            list_color = ['green', 'orange', 'blue', 'red', 'purple']
+            list_component = ['Sensor', 'Battery', 'Regulator', 'Pump']
+
+            dominant_color = data["Color"].lower()
+            best_component = data["Component"]
+
+            matched = False  # Flag to indicate a successful match
+
+            for color in list_color:
+                for component in list_component:
+                    attr_name = f"_{color.lower()}_{component.lower()}"
+                    if dominant_color == color.lower() and best_component == component:
+                        if hasattr(self, attr_name):
+                            target_list = getattr(self, attr_name)
+                            if ort_var not in target_list:  
                                 target_list.append(ort_var)
-                                setattr(self, attr_name, target_list)
-                            else:
-                                self.get_logger().error(f"Attribute {attr_name} not found on {self}")
+                                self.get_logger().info(f"Updated {attr_name}: {ort_var}")  
+                                matched = True
+                        else:
+                            self.get_logger().error(f"Attribute {attr_name} not found on {self}")
 
-                if data['Max Matches'] > 0:  
-                    self.get_logger().info(
-                        f'Bin {detected_parts}: Color - {data["Color"]}, Best Match - {data["Component"]} '
-                        f'({data["Max Matches"]} matches), Orientation X - {ort_var["X"]}, Y - {ort_var["Y"]}, Z - {ort_var["Z"]}, '
-                        f'roll - {ort_var["roll"]}, pitch - {ort_var["pitch"]}, yaw - {ort_var["yaw"]}, w - {ort_var["w"]}'
-                    )
-
-        # self.get_logger().info(f'Green Sensor: {self._green_sensor}')
+            if matched and data['Max Matches'] > 0:  
+                self.get_logger().info(
+                    f'Bin {detected_parts}: Color - {dominant_color.title()}, Best Match - {best_component} '
+                    f'({data["Max Matches"]} matches), Orientation X - {ort_var["X"]}, Y - {ort_var["Y"]}, Z - {ort_var["Z"]}, '
+                    f'roll - {ort_var["roll"]}, pitch - {ort_var["pitch"]}, yaw - {ort_var["yaw"]}, w - {ort_var["w"]}'
+                )
 
     
     def _colour_identification_left(self, image):
@@ -378,11 +384,11 @@ class ImageSubscriber(Node):
         
 
         img_left = image
-        if img_left is None:
-            self.get_logger().error('Left bin image did not load.')
-            return
-        else:
-            self.get_logger().info('Left bin image loaded successfully.')
+        # if img_left is None:
+        #     self.get_logger().error('Left bin image did not load.')
+        #     return
+        # else:
+        #     self.get_logger().info('Left bin image loaded successfully.')
 
         component_names = ['Battery', 'Sensor']
         components = {name: cv2.imread(f'{name}.png', cv2.IMREAD_GRAYSCALE) for name in component_names if cv2.imread(f'{name}.png', cv2.IMREAD_GRAYSCALE) is not None}
@@ -390,7 +396,6 @@ class ImageSubscriber(Node):
         results = {}
         sift = cv2.SIFT_create()
 
-    
         for detected_parts in self._left_part_list:
             coords = bin_crops_left.get(detected_parts)
             cropped_image = img_left[coords[0]:coords[1], coords[2]:coords[3]]
@@ -430,36 +435,46 @@ class ImageSubscriber(Node):
                 'Component': best_component,
                 'Max Matches': max_matches
             }
-
+        
         for detected_parts, data in results.items():
-                ort = self._part_dic.get(detected_parts)
-                if ort is None:
-                    self.get_logger().error(f"Orientation data not found for {detected_parts}")
-                    continue
+            ort = self._part_dic.get(detected_parts)
+            if ort is None:
+                self.get_logger().error(f"Orientation data not found for {detected_parts}")
+                continue
 
-                ort_var = {'X': ort[0], 'Y': ort[1], 'Z': ort[2], 'roll': ort[3], 'pitch': ort[4], 'yaw': ort[5], 'w': ort[6]}
-                list_color = ['green', 'orange', 'blue', 'red', 'purple']
-                list_component = ['Sensor', 'Battery', 'Regulator', 'Pump']
-                dominant_color = data["Color"].lower()  
-                best_component = data["Component"]      
+            ort_var = {
+                'X': ort[0], 'Y': ort[1], 'Z': ort[2],
+                'roll': ort[3], 'pitch': ort[4], 'yaw': ort[5], 'w': ort[6]
+            }
 
-                for color in list_color:
-                    for component in list_component:
-                        if dominant_color == color.lower() and best_component == component:
-                            attr_name = f"_{color.lower()}_{component.lower()}"
-                            target_list = getattr(self, attr_name, None)
-                            if target_list is not None:
+            list_color = ['green', 'orange', 'blue', 'yellow','red', 'purple']
+            list_component = ['Sensor', 'Battery', 'Regulator', 'Pump']
+
+            dominant_color = data["Color"].lower()
+            best_component = data["Component"]
+
+            matched = False  
+
+            for color in list_color:
+                for component in list_component:
+                    attr_name = f"_{color.lower()}_{component.lower()}"
+                    if dominant_color == color.lower() and best_component == component:
+                        if hasattr(self, attr_name):
+                            target_list = getattr(self, attr_name)
+                            if ort_var not in target_list:  
                                 target_list.append(ort_var)
-                                setattr(self, attr_name, target_list)
-                            else:
-                                self.get_logger().error(f"Attribute {attr_name} not found on {self}")
+                                self.get_logger().info(f"Updated {attr_name}: {ort_var}")  
+                                matched = True
+                        else:
+                            self.get_logger().error(f"Attribute {attr_name} not found on {self}")
 
-                if data['Max Matches'] > 0:  
-                    self.get_logger().info(
-                        f'Bin {detected_parts}: Color - {data["Color"]}, Best Match - {data["Component"]} '
-                        f'({data["Max Matches"]} matches), Orientation X - {ort_var["X"]}, Y - {ort_var["Y"]}, Z - {ort_var["Z"]}, '
-                        f'roll - {ort_var["roll"]}, pitch - {ort_var["pitch"]}, yaw - {ort_var["yaw"]}, w - {ort_var["w"]}'
-                    )
+            if matched and data['Max Matches'] > 0: 
+                self.get_logger().info(
+                    f'Bin {detected_parts}: Color - {dominant_color.title()}, Best Match - {best_component} '
+                    f'({data["Max Matches"]} matches), Orientation X - {ort_var["X"]}, Y - {ort_var["Y"]}, Z - {ort_var["Z"]}, '
+                    f'roll - {ort_var["roll"]}, pitch - {ort_var["pitch"]}, yaw - {ort_var["yaw"]}, w - {ort_var["w"]}'
+                )
+
 
     def match_keypoints(self, descriptors1, descriptors2):
         bf = cv2.BFMatcher()
@@ -467,8 +482,8 @@ class ImageSubscriber(Node):
         good = []
         for m, n in matches:
             if m.distance < 0.98 * n.distance:
-                good.append(m)
-        return good
+                    good.append(m)
+            return good
 
     def get_logger(self):
         import logging
