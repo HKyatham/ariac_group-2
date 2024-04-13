@@ -16,6 +16,7 @@ find_package(OpenCV REQUIRED)
 install(DIRECTORY
   launch
   config
+  comp_Img
   DESTINATION share/${PROJECT_NAME}
 )
 

@@ -14,6 +14,7 @@ from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 import math
+from ament_index_python.packages import get_package_share_directory
 
 class ImageSubscriber(Node):
     def __init__(self):
@@ -362,7 +363,7 @@ class ImageSubscriber(Node):
         except Exception as e:
             self.get_logger().error('Error info : %r' % (e,))
     
-   def _kts2_camera_cb(self,msg):
+    def _kts2_camera_cb(self,msg):
         try:
             if len(msg.tray_poses) == 0:
                 self.get_logger().info('NO Tray DETECTED')
@@ -450,9 +451,10 @@ class ImageSubscriber(Node):
         }
         
         
-        component_names = ['Battery', 'Sensor', 'Regulator_', 'Pump_']
+        component_names = ['Battery', 'Sensor', 'Regulator', 'Pump']
+        path = get_package_share_directory('rwa4_group_2')
         components = {
-            name: cv2.imread(f'{name}.png', cv2.IMREAD_GRAYSCALE) for name in component_names if cv2.imread(f'{name}.png', cv2.IMREAD_GRAYSCALE) is not None
+            name: cv2.imread(f'{path}/comp_Img/{name}.png', cv2.IMREAD_GRAYSCALE) for name in component_names if cv2.imread(f'{path}/comp_Img/{name}.png', cv2.IMREAD_GRAYSCALE) is not None
         }
 
         img_right = image
@@ -589,9 +591,10 @@ class ImageSubscriber(Node):
                 'purple': ([125, 50, 50], [150, 255, 255])
         }
         
-        component_names = ['Battery', 'Sensor', 'Regulator_', 'Pump_']
+        component_names = ['Battery', 'Sensor', 'Regulator', 'Pump']
+        path = get_package_share_directory('rwa4_group_2')
         components = {
-            name: cv2.imread(f'{name}.png', cv2.IMREAD_GRAYSCALE) for name in component_names if cv2.imread(f'{name}.png', cv2.IMREAD_GRAYSCALE) is not None
+            name: cv2.imread(f'{path}/comp_Img/{name}.png', cv2.IMREAD_GRAYSCALE) for name in component_names if cv2.imread(f'{path}/comp_Img/{name}.png', cv2.IMREAD_GRAYSCALE) is not None
         }
 
         img_left = image
