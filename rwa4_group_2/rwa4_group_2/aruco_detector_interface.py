@@ -2,6 +2,18 @@ import cv2
 import numpy as np
 
 class ArucoDetector():
+    """A Class to handle aruco marker detection.
+
+    This class handles aruco marker detection to identify the kit id using RGB Cameras placed over the kit tables.
+    
+    Attributes:
+        _tray_data(dictionary): A dictionary to store tray IDs and their corresponding slots.
+        _aruco_dict(dictionary): Aruco marker standard dictionary.
+        _slot_counter(int): Counter to keep track of slot numbers
+        
+    Args:
+        kts (str): Kit position ("KTS1" or "KTS2").
+    """    
     
     def __init__(self,kts):
         self._tray_data={}
@@ -12,15 +24,33 @@ class ArucoDetector():
             self._slot_counter = 1
         
     def add_tray(self,tray_id,slot):
+        """ Method to add tray id and slot number to "_tray_data" dictionary.
+
+        Args:
+            tray_id (int): ID of the tray.
+            slot (int): Slot number.
+            
+        """
         if tray_id in self._tray_data:
             self._tray_data[tray_id].append(slot)
         else:
             self._tray_data[tray_id] =[slot]
             
     def get_slots(self,tray_id):
+        """Method to get slot position.
+
+        Args:
+            tray_id (int): ID of the tray.
+        """
         return self._tray_data.get(tray_id, [])
     
     def aruco_detection(self,image, dictionary):
+        """ Handle aruco marker detection.
+
+        Args:
+            image (numpy.ndarray): Input image containing cropped aruco markers.
+            dictionary(_aruco_dict): Standard Aruco dictionary
+        """
         # Initialising the Aruco parameters
         parameters = cv2.aruco.DetectorParameters()
         # Detecting the markers
@@ -37,8 +67,16 @@ class ArucoDetector():
             return self._tray_data
 
     def crop_aruco(self,image, x1, y1, x2, y2, dictionary):
+        """Handle cropping of input image to get just  the aruco marker positions.
+
+        Args:
+            image (numpy.ndarray): Input image from rgb cameras.
+            x1, y1, x2, y2 (int): Coordinates for cropping region to get just aruco markers.
+            
+        """
         img_frame_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         cropped_region = img_frame_gray[y1:y2, x1:x2]
+        # To give white background around aruco markers for detection.
         white_padding_size = 20
         white_padding_width = x2 - x1 + 2 * white_padding_size
         white_padding_height = y2 - y1 + 2 * white_padding_size
@@ -48,19 +86,4 @@ class ArucoDetector():
         aruco_image_padded[y_offset:y_offset + (y2 - y1), x_offset:x_offset + (x2 - x1)] = cropped_region
         return self.aruco_detection(aruco_image_padded, dictionary)
             
-# if __name__ == "__main__":
-    
-#     kits_2_aruco_crops = [
-#     {"x1": 104, "y1": 199, "x2": 149, "y2": 244},
-#     {"x1": 297, "y1": 199, "x2": 342, "y2": 244},
-#     {"x1": 490, "y1": 199, "x2": 535, "y2": 244},
-#     ]
-    
-#     detect =ArucoDetector()
-#     kit_2_img = "/home/gautam/ariac_ws/src/rwa4_group_2/opencv/kts2_img.png"
-#     img_frame = cv2.imread(kit_2_img)
-#     for crop in kits_2_aruco_crops:
-#         detect.crop_aruco(img_frame, crop["x1"], crop["y1"], crop["x2"], crop["y2"], detect._aruco_dict)
-    
-    
     
