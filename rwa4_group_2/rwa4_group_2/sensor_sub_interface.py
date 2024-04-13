@@ -47,6 +47,12 @@ class ImageSubscriber(Node):
         # self.kts2_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/kts2_rgb_camera/rgb_image",self._kts2_rgb_camera_cb,10)
         # self.kts2_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/kts2_camera/image",self._kts2_camera_cb,qos_profile_sensor_data)
         self._bridge = CvBridge()
+        self._kts2_tray_data ={}
+        self._kts1_tray_data ={}
+        self._kts_tray_data_combined = {}
+        self._kts1_pos_data = {'tray_poses': []}
+        self._kts2_pos_data = {'tray_poses': []}
+        self._kts_pos_slot = {}
 
     def quaternion_to_euler(self,quaternion):
         
@@ -304,11 +310,14 @@ class ImageSubscriber(Node):
                 self.get_logger().info('NO Tray DETECTED')
             else:
                 temp_tray_pos = []
-                for tray_pose in msg.tray_poses:
+                for i, tray_pose in enumerate(msg.tray_poses):
                     temp_tray_pos.append({
                         'position': (tray_pose.position.x, tray_pose.position.y, tray_pose.position.z),
                         'orientation': (tray_pose.orientation.x, tray_pose.orientation.y, tray_pose.orientation.z, tray_pose.orientation.w)
                     })
+                    self._part_parent_frame = "kts1_camera_frame"
+                    self._part_frame = f"kts1_camera_tray_{i+1}_frame"
+                    trans_coords =self.generate_transform(self._part_parent_frame, self._part_frame, tray_pose)
                 self._kts1_pos_data['tray_poses'] = temp_tray_pos
                 if 'tray_poses' not in self._kts1_pos_data or not self._kts1_pos_data['tray_poses']:
                     self.get_logger().warn("No tray poses found in self._kts1_pos_data")
@@ -326,11 +335,11 @@ class ImageSubscriber(Node):
                             slot = 3
                         else:
                             slot = None
-                        self._kts_pos_slot[slot] = (position, orientation)
+                        self._kts_pos_slot[slot] = (trans_coords[0],trans_coords[1],trans_coords[2],trans_coords[3],trans_coords[4],trans_coords[5])
                 # self.get_logger().info(f'self._kts2_pos_data:  {self._kts2_pos_data}')  
                 self.get_logger().info(f'self._kts_pos_slot:  {self._kts_pos_slot}')  
         except Exception as e:
-            self.get_logger().error('Error info: %r' % (e,))
+            self.get_logger().error('Error info _kts1_camera_cb: %r' % (e,))
 
     def _kts2_rgb_camera_cb(self,msg):
         try:
@@ -353,17 +362,20 @@ class ImageSubscriber(Node):
         except Exception as e:
             self.get_logger().error('Error info : %r' % (e,))
     
-    def _kts2_camera_cb(self,msg):
+   def _kts2_camera_cb(self,msg):
         try:
             if len(msg.tray_poses) == 0:
                 self.get_logger().info('NO Tray DETECTED')
             else:
                 temp_tray_pos = []
-                for tray_pose in msg.tray_poses:
+                for i, tray_pose in enumerate(msg.tray_poses):
                     temp_tray_pos.append({
                         'position': (tray_pose.position.x, tray_pose.position.y, tray_pose.position.z),
                         'orientation': (tray_pose.orientation.x, tray_pose.orientation.y, tray_pose.orientation.z, tray_pose.orientation.w)
                     })
+                self._part_parent_frame = "kts2_camera_frame"
+                self._part_frame = f"kts2_camera_tray_{i+1}_frame"
+                trans_coords =self.generate_transform(self._part_parent_frame, self._part_frame, tray_pose)
                 self._kts2_pos_data['tray_poses'] = temp_tray_pos
                 if 'tray_poses' not in self._kts2_pos_data or not self._kts2_pos_data['tray_poses']:
                     self.get_logger().warn("No tray poses found in self._kts1_pos_data")
@@ -381,11 +393,11 @@ class ImageSubscriber(Node):
                             slot = 6
                         else:
                             slot = None
-                        self._kts_pos_slot[slot] = (position, orientation)
+                    self._kts_pos_slot[slot] = (trans_coords[0],trans_coords[1],trans_coords[2],trans_coords[3],trans_coords[4],trans_coords[5])
                 # self.get_logger().info(f'self._kts2_pos_data:  {self._kts2_pos_data}')  
                 self.get_logger().info(f'self._kts_pos_slot:  {self._kts_pos_slot}')  
         except Exception as e:
-            self.get_logger().error('Error info: %r' % (e,)) 
+            self.get_logger().error('Error info _kts2_camera_cb: %r' % (e,))  
     
     def _colour_identification_right(self,image):
         bin_crops_right = {
