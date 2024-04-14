@@ -40,19 +40,19 @@ class ColorTypeMapper():
     '''
 
     _part_colors = {
-        PartMsg.RED: 'red',
-        PartMsg.BLUE: 'blue',
-        PartMsg.GREEN: 'green',
-        PartMsg.ORANGE: 'orange',
-        PartMsg.PURPLE: 'purple',
+        PartMsg.RED: 'Red',
+        PartMsg.BLUE: 'Blue',
+        PartMsg.GREEN: 'Green',
+        PartMsg.ORANGE: 'Orange',
+        PartMsg.PURPLE: 'Purple',
     }
     '''Dictionary for converting Part color constants to strings'''
 
     _part_types = {
-        PartMsg.BATTERY: 'battery',
-        PartMsg.PUMP: 'pump',
-        PartMsg.REGULATOR: 'regulator',
-        PartMsg.SENSOR: 'sensor',
+        PartMsg.BATTERY: 'Battery',
+        PartMsg.PUMP: 'Pump',
+        PartMsg.REGULATOR: 'Regulator',
+        PartMsg.SENSOR: 'Sensor',
     }
     '''Dictionary for converting Part type constants to strings'''
 
@@ -339,12 +339,12 @@ class OrderSubInterface(Node):
                 self._part_frame = f"right_bin_part_{i+1}_frame"
                 # self._right_broadcaster_part_pose(pose)
                 trans_coords =self.generate_transform(self._part_parent_frame, self._part_frame, part_pose)
-                X=round(trans_coords[0],2)
-                Y=round(trans_coords[1],2)
-                Z=round(trans_coords[2],2)
+                X=round(trans_coords[0],6)
+                Y=round(trans_coords[1],6)
+                Z=round(trans_coords[2],6)
                 oX=round(trans_coords[3],2)
                 oY=round(trans_coords[4],2)
-                oZ=round(trans_coords[5],2)
+                oZ=3.14 if round(trans_coords[5],2) == -3.14 else round(trans_coords[5],2)
                 # self.get_logger().info(f'Part {i+1} Location: Color :{color}, Typee :{comp},')
                 # self.get_logger().info(f'Part {i+1} Location: X :{X}, Y :{Y}, Z :{Z}, oX :{oX}, oY :{oY}, oZ :{oZ} ')
                 colors = [0,1,2,3,4]
@@ -399,12 +399,12 @@ class OrderSubInterface(Node):
                 self._part_frame = f"left_bin_part_{i+1}_frame"
                 # self._right_broadcaster_part_pose(pose)
                 trans_coords =self.generate_transform(self._part_parent_frame, self._part_frame, part_pose)
-                X=round(trans_coords[0],2)
-                Y=round(trans_coords[1],2)
-                Z=round(trans_coords[2],2)
+                X=round(trans_coords[0],6)
+                Y=round(trans_coords[1],6)
+                Z=round(trans_coords[2],6)
                 oX=round(trans_coords[3],2)
                 oY=round(trans_coords[4],2)
-                oZ=round(trans_coords[5],2)
+                oZ=oZ=3.14 if round(trans_coords[5],2) == -3.14 else round(trans_coords[5],2)
                 # self.get_logger().info(f'Part {i+1} Location: Color :{color}, Typee :{comp},')
                 # self.get_logger().info(f'Part {i+1} Location: X :{X}, Y :{Y}, Z :{Z}, oX :{oX}, oY :{oY}, oZ :{oZ} ')
                 colors = [0,1,2,3,4]
@@ -457,12 +457,12 @@ class OrderSubInterface(Node):
                 self._part_frame = f"kts1_camera_tray_{i+1}_frame"
                 # self._right_broadcaster_part_pose(pose)
                 trans_coords =self.generate_transform(self._part_parent_frame, self._part_frame, tray_pose)
-                X=round(trans_coords[0],2)
-                Y=round(trans_coords[1],2)
-                Z=round(trans_coords[2],2)
+                X=round(trans_coords[0],6)
+                Y=round(trans_coords[1],6)
+                Z=round(trans_coords[2],6)
                 oX=round(trans_coords[3],2)
                 oY=round(trans_coords[4],2)
-                oZ=round(trans_coords[5],2)
+                oZ=oZ=3.14 if round(trans_coords[5],2) == -3.14 else round(trans_coords[5],2)
                 # self.get_logger().info(f'Detected Tray{i+1} ID :{I_D},')
                 # self.get_logger().info(f'Part {i+1} Location: X :{X}, Y :{Y}, Z :{Z}, oX :{oX}, oY :{oY}, oZ :{oZ} ')
                 ort_var=(X,Y,Z,oX,oY,oZ)
@@ -508,12 +508,12 @@ class OrderSubInterface(Node):
                 self._part_frame = f"kts1_camera_tray_{i+1}_frame"
                 # self._right_broadcaster_part_pose(pose)
                 trans_coords =self.generate_transform(self._part_parent_frame, self._part_frame, tray_pose)
-                X=round(trans_coords[0],2)
-                Y=round(trans_coords[1],2)
-                Z=round(trans_coords[2],2)
+                X=round(trans_coords[0],6)
+                Y=round(trans_coords[1],6)
+                Z=round(trans_coords[2],6)
                 oX=round(trans_coords[3],2)
                 oY=round(trans_coords[4],2)
-                oZ=round(trans_coords[5],2)
+                oZ=oZ=3.14 if round(trans_coords[5],2) == -3.14 else round(trans_coords[5],2)
                 # self.get_logger().info(f'Detected Tray{i+1} ID :{I_D},')
                 # self.get_logger().info(f'Part {i+1} Location: X :{X}, Y :{Y}, Z :{Z}, oX :{oX}, oY :{oY}, oZ :{oZ} ')
                 ort_var=(X,Y,Z,oX,oY,oZ)
@@ -618,10 +618,10 @@ class OrderSubInterface(Node):
                     self.get_logger().info(f'  - Orientation (rpy): [{r}, {p}, {w}]')
                 for part in poped.parts:
                     x,y,z,r,p,w=poped.parts[part]
-                    print(str(part).split("_"))
                     color, type = str(part).split("_")[1::]
-                    color = ColorTypeMapper._part_colors[color]
-                    type = ColorTypeMapper._part_types[type]
+                    color = ColorTypeMapper._part_colors[int(color)]
+                    type = ColorTypeMapper._part_types[int(type)]
+                    print(ColorTypeMapper._part_colors.keys())
                     self.get_logger().info(f'  - {color} {type}:')
                     self.get_logger().info(f'    - Position (xyz): [{x}, {y}, {z}]')
                     self.get_logger().info(f'    - Orientation (rpy): [{r}, {p}, {w}]')
@@ -652,10 +652,11 @@ class OrderSubInterface(Node):
                     self.get_logger().info(f'  - Orientation (rpy): [{r}, {p}, {w}]')
                 for part in poped.parts:
                     x,y,z,r,p,w=poped.parts[part]
-                    # color, type = str(part).split("_")[1::]
-                    # color = ColorTypeMapper._part_colors[color]
-                    # type = ColorTypeMapper._part_types[type]
-                    self.get_logger().info(f'  - {part}:')
+                    color, type = str(part).split("_")[1::]
+                    color = ColorTypeMapper._part_colors[int(color)]
+                    type = ColorTypeMapper._part_types[int(type)]
+                    print(ColorTypeMapper._part_colors.keys())
+                    self.get_logger().info(f'  - {color} {type}:')
                     self.get_logger().info(f'    - Position (xyz): [{x}, {y}, {z}]')
                     self.get_logger().info(f'    - Orientation (rpy): [{r}, {p}, {w}]')
                 
