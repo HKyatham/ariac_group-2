@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 from rclpy.qos import qos_profile_sensor_data
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from std_msgs.msg import Bool
 from std_msgs.msg import String
 from std_msgs.msg import Int32, Int32MultiArray
@@ -125,16 +126,20 @@ class OrderSubInterface(Node):
     Args:
         node_name (str): The name of the node, provided during instantiation.
     """
+    mutex_group1 = MutuallyExclusiveCallbackGroup()
+    mutex_group2 = MutuallyExclusiveCallbackGroup()
+    mutex_group3 = MutuallyExclusiveCallbackGroup()
+    mutex_group4 = MutuallyExclusiveCallbackGroup()
     def __init__(self):
         super().__init__('OrderSubInterface')
         #Subscribers
-        self._orders_sub = self.create_subscription(Order,'/ariac/orders',self.orders,10)
+        self._orders_sub = self.create_subscription(Order,'/ariac/orders',self.orders,10,callback_group= OrderSubInterface.mutex_group1)
         # self.Advcamera_sub = self.create_subscription(AdvancedLogicalCameraImageMsg,"/ariac/sensors/right_bins_camera/image",self.right_bins_camera_cb,qos_profile_sensor_data)
         #Publishers
-        self._AGV_ID_pub = self.create_publisher(Int32, "fullfilled_agv_id", 10)    
-        self._order_length_pub = self.create_publisher(Int32MultiArray, "/order_length", 1)
+        self._AGV_ID_pub = self.create_publisher(Int32, "fullfilled_agv_id", 10, callback_group= OrderSubInterface.mutex_group2)    
+        self._order_length_pub = self.create_publisher(Int32MultiArray, "/order_length", 1, callback_group= OrderSubInterface.mutex_group2)
         #timers
-        self._timer=self.create_timer(1,self.timer_cb)    
+        self._timer=self.create_timer(1,self.timer_cb, callback_group= OrderSubInterface.mutex_group2)    
         #Attributes
         self._clock = self.get_clock()
         self._counter=0
@@ -176,14 +181,14 @@ class OrderSubInterface(Node):
                 attr_name = f"_{id}"
                 setattr(self, attr_name, set())
         self._tray_dict={}
-        self.right_bins_camera_sub = self.create_subscription(AdvancedLogicalCameraImage,"/ariac/sensors/right_bins_camera/image",self._right_bins_camera_cb, qos_profile_sensor_data)
+        self.right_bins_camera_sub = self.create_subscription(AdvancedLogicalCameraImage,"/ariac/sensors/right_bins_camera/image",self._right_bins_camera_cb, qos_profile_sensor_data,callback_group= OrderSubInterface.mutex_group3)
         # self.right_bins_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/right_bins_rgb_camera/rgb_image",self._right_bins_rgb_camera_cb,qos_profile_sensor_data)
-        self.left_bins_camera_sub = self.create_subscription(AdvancedLogicalCameraImage,"/ariac/sensors/left_bins_camera/image",self._left_bins_camera_cb, qos_profile_sensor_data)
+        self.left_bins_camera_sub = self.create_subscription(AdvancedLogicalCameraImage,"/ariac/sensors/left_bins_camera/image",self._left_bins_camera_cb, qos_profile_sensor_data,callback_group= OrderSubInterface.mutex_group3)
         # self.left_bins_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/left_bins_rgb_camera/rgb_image",self._left_bins_rgb_camera_cb,10)
         # self.kts1_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/kts1_rgb_camera/rgb_image",self._kts1_rgb_camera_cb,10)
-        self.kts1_camera_sub = self.create_subscription(AdvancedLogicalCameraImage,"/ariac/sensors/kts1_camera/image",self._kts1_camera_cb,qos_profile_sensor_data)
+        self.kts1_camera_sub = self.create_subscription(AdvancedLogicalCameraImage,"/ariac/sensors/kts1_camera/image",self._kts1_camera_cb,qos_profile_sensor_data,callback_group= OrderSubInterface.mutex_group4)
         # self.kts2_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/kts2_rgb_camera/rgb_image",self._kts2_rgb_camera_cb,10)
-        self.kts2_camera_sub = self.create_subscription(AdvancedLogicalCameraImage,"/ariac/sensors/kts2_camera/image",self._kts2_camera_cb,qos_profile_sensor_data)
+        self.kts2_camera_sub = self.create_subscription(AdvancedLogicalCameraImage,"/ariac/sensors/kts2_camera/image",self._kts2_camera_cb,qos_profile_sensor_data,callback_group= OrderSubInterface.mutex_group4)
         self._bridge = CvBridge()
         self._kts2_tray_data ={}
         self._kts1_tray_data ={}
@@ -360,8 +365,8 @@ class OrderSubInterface(Node):
                                 if ort_var not in target_list:  
                                     target_list.add(ort_var)
                                     self._dictionary.update({attr_name:target_list})
-                                    self.get_logger().info(f"Updated {attr_name}: {ort_var}")
-                                    self.get_logger().info(f"Updated parts dict in right cb: {self._dictionary}")  
+                                    self.get_logger().debug(f"Updated {attr_name}: {ort_var}")
+                                    self.get_logger().debug(f"Updated parts dict in right cb: {self._dictionary}")  
 
                                   
                             # else:
@@ -420,8 +425,8 @@ class OrderSubInterface(Node):
                                 if ort_var not in target_list:  
                                     target_list.add(ort_var)
                                     self._dictionary.update({attr_name:target_list})
-                                    self.get_logger().info(f"Updated {attr_name}: {ort_var}")
-                                    self.get_logger().info(f"Updated parts dict in left cb: {self._dictionary}")  
+                                    self.get_logger().debug(f"Updated {attr_name}: {ort_var}")
+                                    self.get_logger().debug(f"Updated parts dict in left cb: {self._dictionary}")  
 
                                   
                             # else:
@@ -473,8 +478,8 @@ class OrderSubInterface(Node):
                     if ort_var not in target_list:  
                         target_list.add(ort_var)
                         self._tray_dict.update({attr_name:target_list})
-                        self.get_logger().info(f"Updated {attr_name}: {ort_var}")
-                        self.get_logger().info(f"Updated Trays dict in kts1 cb: {self._tray_dict}") 
+                        self.get_logger().debug(f"Updated {attr_name}: {ort_var}")
+                        self.get_logger().debug(f"Updated Trays dict in kts1 cb: {self._tray_dict}") 
             
 
                                 
@@ -524,8 +529,8 @@ class OrderSubInterface(Node):
                     if ort_var not in target_list:  
                         target_list.add(ort_var)
                         self._tray_dict.update({attr_name:target_list})
-                        self.get_logger().info(f"Updated {attr_name}: {ort_var}")
-                        self.get_logger().info(f"Updated Trays dict in kts2 cb: {self._tray_dict}") 
+                        self.get_logger().debug(f"Updated {attr_name}: {ort_var}")
+                        self.get_logger().debug(f"Updated Trays dict in kts2 cb: {self._tray_dict}") 
             
 
                                 

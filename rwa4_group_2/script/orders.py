@@ -7,6 +7,7 @@ To test this script, run the following commands in separate terminals:
 
 import rclpy
 from rwa4_group_2.orders_sub_interface import OrderSubInterface
+from rclpy.executors import MultiThreadedExecutor
 
 
 def main(args=None):
@@ -22,14 +23,18 @@ def main(args=None):
     3. Spins (i.e., continuously processes messages on all subscribers) the node to keep it alive.
     4. Destroys the node and shuts down the ROS 2 system once the node stops spinning.
     """
+    # rclpy.init(args=args) # Initialize the ROS client library
+    #node = OrderSubInterface() # Create an instance of the OrderSubInterface
     rclpy.init(args=args) # Initialize the ROS client library
-    node = OrderSubInterface() # Create an instance of the OrderSubInterface
+    SubmissionNode = OrderSubInterface() # Create an instance of the OrderSubmissionInterface
+    executor = MultiThreadedExecutor() # For multi-threaded executor
+    executor.add_node(SubmissionNode)
     try:
-        rclpy.spin(node)
+        executor.spin() # Spinning the executor
     except KeyboardInterrupt:
-        node.get_logger().error("KeyboardInterrupt received!")
+        executor.get_logger().error("KeyboardInterrupt received!")
     finally:
-        node.destroy_node()
+        executor.destroy_node()
         rclpy.shutdown()
 
 
