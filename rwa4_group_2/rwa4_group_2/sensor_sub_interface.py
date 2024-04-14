@@ -40,7 +40,7 @@ class ImageSubscriber(Node):
                 attr_name = f"_{color}_{component}"
                 setattr(self, attr_name, [])
         self.right_bins_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/right_bins_camera/image",self._right_bins_camera_cb, qos_profile_sensor_data)
-        self.right_bins_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/right_bins_rgb_camera/rgb_image",self._right_bins_rgb_camera_cb,10)
+        self.right_bins_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/right_bins_rgb_camera/rgb_image",self._right_bins_rgb_camera_cb,qos_profile_sensor_data)
         # self.left_bins_camera_sub = self.create_subscription(BasicLogicalCameraImage,"/ariac/sensors/left_bins_camera/image",self._left_bins_camera_cb, qos_profile_sensor_data)
         # self.left_bins_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/left_bins_rgb_camera/rgb_image",self._left_bins_rgb_camera_cb,10)
         # self.kts1_rgb_camera_sub = self.create_subscription(Image,"/ariac/sensors/kts1_rgb_camera/rgb_image",self._kts1_rgb_camera_cb,10)
@@ -147,13 +147,13 @@ class ImageSubscriber(Node):
             return
         
     def _right_bins_rgb_camera_cb(self,msg):
-        try:
+        # try:
             cv_image = self._bridge.imgmsg_to_cv2(msg, "bgr8")
-            self.get_logger().info('Inside Right RGB Camera: ')
+            # self.get_logger().info('Inside Right RGB Camera: ')
 
             self._colour_identification_right(cv_image)
-        except Exception as e:
-            self.get_logger().error('Failed to convert image: %r' % (e,))
+        # except Exception as e:
+            # self.get_logger().error('Failed to Right Bin convert image: %r' % (e,))
     
     def _right_bins_camera_cb(self,msg):
         try:
@@ -162,6 +162,8 @@ class ImageSubscriber(Node):
             for i, part_pose in enumerate(msg._part_poses):
                 self.get_logger().info(f'DETECTED part {i+1} ')
 
+                cY=part_pose.position.y
+                cZ=part_pose.position.z
                 self._part_parent_frame = "right_bins_camera_frame"
                 self._part_frame = f"right_bin_part_{i+1}_frame"
                 # self._right_broadcaster_part_pose(pose)
@@ -186,7 +188,7 @@ class ImageSubscriber(Node):
                 for i, z_val in enumerate(_Z_axis):
                     for j , y_val in enumerate(_Y_axis):
                         counter+=1
-                        if abs(y_val-Y)<0.001 and abs(z_val-Z)<0.001:
+                        if abs(y_val-cY)<0.001 and abs(z_val-cZ)<0.001:
                             slot=_slot_val.get(counter)
                             if slot not in self._right_part_list:
                                 self.get_logger().info(f'Found Item in bin {i},{j},{counter},{slot}')
@@ -212,7 +214,9 @@ class ImageSubscriber(Node):
                 self.get_logger().info('NO Part DETECTED')
             for i, part_pose in enumerate(msg._part_poses):
                 self.get_logger().info(f'DETECTED part {i+1} in LEFT BIN')
-                
+                cY=part_pose.position.y
+                cZ=part_pose.position.z
+
                 self._part_parent_frame = "left_bins_camera_frame"
                 self._part_frame = f"left_bin_part_{i+1}_frame"
                 # self._right_broadcaster_part_pose(pose)
@@ -236,7 +240,7 @@ class ImageSubscriber(Node):
                 for i, z_val in enumerate(_Z_axis):
                     for j , y_val in enumerate(_Y_axis):
                         counter+=1
-                        if abs(y_val-Y)<0.001 and abs(z_val-Z)<0.001:
+                        if abs(y_val-cY)<0.001 and abs(z_val-cZ)<0.001:
                             slot=_slot_val.get(counter)
                             if slot not in self._left_part_list:
                                 self.get_logger().info(f'Found Item in bin {i},{j},{counter},{slot}')
@@ -417,8 +421,9 @@ class ImageSubscriber(Node):
         component_names = ['Battery', 'Sensor', 'Regulator', 'Pump']
         path = get_package_share_directory('rwa4_group_2')
         components = {
-            name: cv2.imread(f'{path}/comp_Img/{name}.png', cv2.IMREAD_GRAYSCALE) for name in component_names if cv2.imread(f'{path}/comp_Img/{name}.png', cv2.IMREAD_GRAYSCALE) is not None
+            name: cv2.imread(f'{path}/comp_Img/{name}.png') for name in component_names if cv2.imread(f'{path}/comp_Img/{name}.png') is not None
         }
+
 
         img_right = image
         # if img_right is None:
@@ -490,7 +495,7 @@ class ImageSubscriber(Node):
                             target_list = getattr(self, attr_name)
                             if ort_var not in target_list:  
                                 target_list.append(ort_var)
-                                # self.get_logger().info(f"Updated {attr_name}: {ort_var}")  
+                                self.get_logger().info(f"Updated {attr_name}: {ort_var}")  
                                 matched = True
                         else:
                             self.get_logger().error(f"Attribute {attr_name} not found on {self}")
@@ -653,10 +658,10 @@ class ImageSubscriber(Node):
 
     def match_keypoints(self, descriptors1, descriptors2):
         bf = cv2.BFMatcher()
-        matches = bf.knnMatch(descriptors1, descriptors2, k=3)
+        matches = bf.knnMatch(descriptors1, descriptors2, k=2)
         good = []
-        for m, n, p in matches:
-            if m.distance < 0.98*n.distance<0.98*p.distance:
+        for m, n in matches:
+            if m.distance < 0.98*n.distance:
                 good.append(m)
             return good
 
