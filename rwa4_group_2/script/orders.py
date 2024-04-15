@@ -23,20 +23,18 @@ def main(args=None):
     3. Spins (i.e., continuously processes messages on all subscribers) the node to keep it alive.
     4. Destroys the node and shuts down the ROS 2 system once the node stops spinning.
     """
-    # rclpy.init(args=args) # Initialize the ROS client library
-    #node = OrderSubInterface() # Create an instance of the OrderSubInterface
     rclpy.init(args=args) # Initialize the ROS client library
-    SubmissionNode = OrderSubInterface() # Create an instance of the OrderSubmissionInterface
+    OrdersNode = OrderSubInterface() # Create an instance of the OrderSubInterface
     executor = MultiThreadedExecutor() # For multi-threaded executor
-    executor.add_node(SubmissionNode)
+    executor.add_node(OrdersNode)
+
     try:
         executor.spin() # Spinning the executor
     except KeyboardInterrupt:
-        executor.get_logger().error("KeyboardInterrupt received!")
+        OrdersNode.get_logger().error("KeyboardInterrupt received!")
     finally:
-        executor.destroy_node()
+        OrdersNode.destroy_node()
         rclpy.shutdown()
-
-
+        
 if __name__ == '__main__':
     main() # Execute the main function when the script is run
