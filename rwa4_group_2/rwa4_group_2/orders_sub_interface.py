@@ -13,6 +13,7 @@ from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from geometry_msgs.msg import TransformStamped
+import json
 import math
 from ariac_msgs.msg import (
     Order,
@@ -36,8 +37,6 @@ class ColorTypeMapper():
     '''
     Class for a Color Type Mapper.
 
-    Raises:
-        KeyboardInterrupt: Exception raised when the user uses Ctrl+C to kill a process
     '''
 
     _part_colors = {
@@ -130,6 +129,8 @@ class OrderSubInterface(Node):
     mutex_group2 = MutuallyExclusiveCallbackGroup()
     mutex_group3 = MutuallyExclusiveCallbackGroup()
     mutex_group4 = MutuallyExclusiveCallbackGroup()
+    # mutex_group5 = MutuallyExclusiveCallbackGroup()
+    
     def __init__(self):
         super().__init__('OrderSubInterface')
         #Subscribers
@@ -158,16 +159,19 @@ class OrderSubInterface(Node):
         self._part_frame = None
         # Initialize the transform broadcaster
         self.tf_broadcaster = TransformBroadcaster(self)
-
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self)
         self.trayCount = {}
         self.partCount = {}
-      
+        self._part_frame_flag = False
+        self._tray_frame_flag = False
+        self._all_frame_flag = False
+        self._lowCheck = None
+        self._highCheck  = None
+    
 
-
-        # colors = ['green', 'orange', 'blue', 'red', 'yellow', 'purple']
-        # components = ['sensor', 'battery', 'regulator', 'pump']
+        colors = ['green', 'orange', 'blue', 'red', 'yellow', 'purple']
+        components = ['sensor', 'battery', 'regulator', 'pump']
         colors = [0,1,2,3,4]
         components = [10,11,12,13]
         for color in colors:
@@ -295,7 +299,7 @@ class OrderSubInterface(Node):
         try:
             if self._part_parent_frame is None:
                 self.get_logger().warn("Part parent frame is not set.")
-                return            
+                return "No"          
             # Get the transform between frames
             t = self._tf_buffer.lookup_transform("world", child, rclpy.time.Time())
             transformed_x=t.transform.translation.x
@@ -308,13 +312,15 @@ class OrderSubInterface(Node):
             # self.get_logger().info(f"Transform between world and {child}: \n")
                                 #    + str(t.transform.translation)+ str(r)+ str(p)+ str(y))
             transformed_part_pose=[transformed_x,transformed_y,transformed_z,r,p,y]
+            if self._part_frame_flag  and self._tray_frame_flag:
+                self._all_frame_flag = True
             return transformed_part_pose
         
         except TransformException as ex:
             self.get_logger().fatal(
                 f"Could not get transform between world and {child}: {str(ex)}"
             )
-            return
+            return "No"
 
         
     
@@ -336,43 +342,42 @@ class OrderSubInterface(Node):
         try:
             if len(msg._part_poses) == 0:
                 self.get_logger().info('NO Part DETECTED')
-            for i, part_pose in enumerate(msg._part_poses):
-                # self.get_logger().info(f'DETECTED part {i+1}: ')
-                color=part_pose.part.color
-                comp=part_pose.part.type
-                self._part_parent_frame = "right_bins_camera_frame"
-                self._part_frame = f"right_bin_part_{i+1}_frame"
-                # self._right_broadcaster_part_pose(pose)
-                trans_coords =self.generate_transform(self._part_parent_frame, self._part_frame, part_pose)
-                X=round(trans_coords[0],6)
-                Y=round(trans_coords[1],6)
-                Z=round(trans_coords[2],6)
-                oX=round(trans_coords[3],2)
-                oY=round(trans_coords[4],2)
-                oZ=3.14 if round(trans_coords[5],2) == -3.14 else round(trans_coords[5],2)
-                # self.get_logger().info(f'Part {i+1} Location: Color :{color}, Typee :{comp},')
-                # self.get_logger().info(f'Part {i+1} Location: X :{X}, Y :{Y}, Z :{Z}, oX :{oX}, oY :{oY}, oZ :{oZ} ')
-                colors = [0,1,2,3,4]
-                components = [10,11,12,13]
-                ort_var=(X,Y,Z,oX,oY,oZ)
-                for colorr in colors:
-                    for component in components:
-                        
-                        if color == colorr and comp == component:
-                            attr_name = f"_{colorr}_{component}"
-                            if hasattr(self, attr_name):
-                                target_list = getattr(self, attr_name)
-                                if ort_var not in target_list:  
-                                    target_list.add(ort_var)
-                                    self._dictionary.update({attr_name:target_list})
-                                    self.get_logger().debug(f"Updated {attr_name}: {ort_var}")
-                                    self.get_logger().debug(f"Updated parts dict in right cb: {self._dictionary}")  
-
-                                  
-                            # else:
-                            #     self.get_logger().error(f"Attribute {attr_name} not found on {self}")
-
-                                
+            else:
+                for i, part_pose in enumerate(msg._part_poses):
+                    # self.get_logger().info(f'DETECTED part {i+1}: ')
+                    color=part_pose.part.color
+                    comp=part_pose.part.type
+                    self._part_parent_frame = "right_bins_camera_frame"
+                    self._part_frame = f"right_bin_part_{i+1}_frame"
+                    # self._right_broadcaster_part_pose(pose)
+                    trans_coords =self.generate_transform(self._part_parent_frame, self._part_frame, part_pose)
+                    if trans_coords == "No":
+                        self._part_frame_flag = False
+                    else:
+                        self._part_frame_flag = True
+                        X=round(trans_coords[0],6)
+                        Y=round(trans_coords[1],6)
+                        Z=round(trans_coords[2],6)
+                        oX=round(trans_coords[3],2)
+                        oY=round(trans_coords[4],2)
+                        oZ=3.14 if round(trans_coords[5],2) == -3.14 else round(trans_coords[5],2)
+                        # self.get_logger().info(f'Part {i+1} Location: Color :{color}, Typee :{comp},')
+                        # self.get_logger().info(f'Part {i+1} Location: X :{X}, Y :{Y}, Z :{Z}, oX :{oX}, oY :{oY}, oZ :{oZ} ')
+                        colors = [0,1,2,3,4]
+                        components = [10,11,12,13]
+                        ort_var=(X,Y,Z,oX,oY,oZ)
+                        for colorr in colors:
+                            for component in components:
+                                if color == colorr and comp == component:
+                                    attr_name = f"_{colorr}_{component}"
+                                    if hasattr(self, attr_name):
+                                        target_list = getattr(self, attr_name)
+                                        if ort_var not in target_list:  
+                                            target_list.add(ort_var)
+                                            self._dictionary.update({attr_name:target_list})
+                                            self.get_logger().debug(f"Updated {attr_name}: {ort_var}")
+                                            self.get_logger().debug(f"Updated parts dict in right cb: {self._dictionary}")  
+                            
 
         except Exception as e:
             self.get_logger().error('Right ALC failed to process the part poses: %r' % (e,))
@@ -396,43 +401,41 @@ class OrderSubInterface(Node):
         try:
             if len(msg._part_poses) == 0:
                 self.get_logger().info('NO Part DETECTED')
-            for i, part_pose in enumerate(msg._part_poses):
-                # self.get_logger().info(f'DETECTED part {i+1}: ')
-                color=part_pose.part.color
-                comp=part_pose.part.type
-                self._part_parent_frame = "left_bins_camera_frame"
-                self._part_frame = f"left_bin_part_{i+1}_frame"
-                # self._right_broadcaster_part_pose(pose)
-                trans_coords =self.generate_transform(self._part_parent_frame, self._part_frame, part_pose)
-                X=round(trans_coords[0],6)
-                Y=round(trans_coords[1],6)
-                Z=round(trans_coords[2],6)
-                oX=round(trans_coords[3],2)
-                oY=round(trans_coords[4],2)
-                oZ=oZ=3.14 if round(trans_coords[5],2) == -3.14 else round(trans_coords[5],2)
-                # self.get_logger().info(f'Part {i+1} Location: Color :{color}, Typee :{comp},')
-                # self.get_logger().info(f'Part {i+1} Location: X :{X}, Y :{Y}, Z :{Z}, oX :{oX}, oY :{oY}, oZ :{oZ} ')
-                colors = [0,1,2,3,4]
-                components = [10,11,12,13]
-                ort_var=(X,Y,Z,oX,oY,oZ)
-                for colorr in colors:
-                    for component in components:
-                        
-                        if color == colorr and comp == component:
-                            attr_name = f"_{colorr}_{component}"
-                            if hasattr(self, attr_name):
-                                target_list = getattr(self, attr_name)
-                                if ort_var not in target_list:  
-                                    target_list.add(ort_var)
-                                    self._dictionary.update({attr_name:target_list})
-                                    self.get_logger().debug(f"Updated {attr_name}: {ort_var}")
-                                    self.get_logger().debug(f"Updated parts dict in left cb: {self._dictionary}")  
-
-                                  
-                            # else:
-                            #     self.get_logger().error(f"Attribute {attr_name} not found on {self}")
-
-                                
+            else: 
+                for i, part_pose in enumerate(msg._part_poses):
+                    # self.get_logger().info(f'DETECTED part {i+1}: ')
+                    color=part_pose.part.color
+                    comp=part_pose.part.type
+                    self._part_parent_frame = "left_bins_camera_frame"
+                    self._part_frame = f"left_bin_part_{i+1}_frame"
+                    # self._right_broadcaster_part_pose(pose)
+                    trans_coords =self.generate_transform(self._part_parent_frame, self._part_frame, part_pose)
+                    if trans_coords == "No":
+                        self._part_frame_flag = False
+                    else:
+                        self._part_frame_flag = True
+                        X=round(trans_coords[0],6)
+                        Y=round(trans_coords[1],6)
+                        Z=round(trans_coords[2],6)
+                        oX=round(trans_coords[3],2)
+                        oY=round(trans_coords[4],2)
+                        oZ=oZ=3.14 if round(trans_coords[5],2) == -3.14 else round(trans_coords[5],2)
+                        # self.get_logger().info(f'Part {i+1} Location: Color :{color}, Typee :{comp},')
+                        # self.get_logger().info(f'Part {i+1} Location: X :{X}, Y :{Y}, Z :{Z}, oX :{oX}, oY :{oY}, oZ :{oZ} ')
+                        colors = [0,1,2,3,4]
+                        components = [10,11,12,13]
+                        ort_var=(X,Y,Z,oX,oY,oZ)
+                        for colorr in colors:
+                            for component in components:
+                                if color == colorr and comp == component:
+                                    attr_name = f"_{colorr}_{component}"
+                                    if hasattr(self, attr_name):
+                                        target_list = getattr(self, attr_name)
+                                        if ort_var not in target_list:  
+                                            target_list.add(ort_var)
+                                            self._dictionary.update({attr_name:target_list})
+                                            self.get_logger().debug(f"Updated {attr_name}: {ort_var}")
+                                            self.get_logger().debug(f"Updated parts dict in left cb: {self._dictionary}")  
 
         except Exception as e:
             self.get_logger().error('Left ALC failed to process the part poses: %r' % (e,))
@@ -455,35 +458,38 @@ class OrderSubInterface(Node):
         try:
             if len(msg.tray_poses) == 0:
                 self.get_logger().info('NO Tray DETECTED')
-            for i, tray_pose in enumerate(msg.tray_poses):
-                # self.get_logger().info(f'DETECTED part {i+1}: ')
-                I_D=tray_pose.id
-                self._part_parent_frame = "kts1_camera_frame"
-                self._part_frame = f"kts1_camera_tray_{i+1}_frame"
-                # self._right_broadcaster_part_pose(pose)
-                trans_coords =self.generate_transform(self._part_parent_frame, self._part_frame, tray_pose)
-                X=round(trans_coords[0],6)
-                Y=round(trans_coords[1],6)
-                Z=round(trans_coords[2],6)
-                oX=round(trans_coords[3],2)
-                oY=round(trans_coords[4],2)
-                oZ=oZ=3.14 if round(trans_coords[5],2) == -3.14 else round(trans_coords[5],2)
-                # self.get_logger().info(f'Detected Tray{i+1} ID :{I_D},')
-                # self.get_logger().info(f'Part {i+1} Location: X :{X}, Y :{Y}, Z :{Z}, oX :{oX}, oY :{oY}, oZ :{oZ} ')
-                ort_var=(X,Y,Z,oX,oY,oZ)
-
-                attr_name = f'_{I_D}'
-                if hasattr(self, attr_name):
-                    target_list = getattr(self, attr_name)
-                    if ort_var not in target_list:  
-                        target_list.add(ort_var)
-                        self._tray_dict.update({attr_name:target_list})
-                        self.get_logger().debug(f"Updated {attr_name}: {ort_var}")
-                        self.get_logger().debug(f"Updated Trays dict in kts1 cb: {self._tray_dict}") 
-            
+            else :
+                for i, tray_pose in enumerate(msg.tray_poses):
+                    # self.get_logger().info(f'DETECTED part {i+1}: ')
+                    I_D=tray_pose.id
+                    self._part_parent_frame = "kts1_camera_frame"
+                    self._part_frame = f"kts1_camera_tray_{i+1}_frame"
+                    # self._right_broadcaster_part_pose(pose)
+                    trans_coords =self.generate_transform(self._part_parent_frame, self._part_frame, tray_pose)
+                    if trans_coords == "No":
+                        self._tray_frame_flag = False
+                    else:
+                        self._tray_frame_flag = True
+                        X=round(trans_coords[0],6)
+                        Y=round(trans_coords[1],6)
+                        Z=round(trans_coords[2],6)
+                        oX=round(trans_coords[3],2)
+                        oY=round(trans_coords[4],2)
+                        oZ=oZ=3.14 if round(trans_coords[5],2) == -3.14 else round(trans_coords[5],2)
+                        # self.get_logger().info(f'Detected Tray{i+1} ID :{I_D},')
+                        # self.get_logger().info(f'Part {i+1} Location: X :{X}, Y :{Y}, Z :{Z}, oX :{oX}, oY :{oY}, oZ :{oZ} ')
+                        ort_var=(X,Y,Z,oX,oY,oZ)
+                        attr_name = f'_{I_D}'
+                        if hasattr(self, attr_name):
+                            target_list = getattr(self, attr_name)
+                            if ort_var not in target_list:  
+                                target_list.add(ort_var)
+                                self._tray_dict.update({attr_name:target_list})
+                                self.get_logger().debug(f"Updated {attr_name}: {ort_var}")
+                                self.get_logger().debug(f"Updated Trays dict in kts1 cb: {self._tray_dict}") 
+                    
 
                                 
-
         except Exception as e:
             # print(traceback.format_exc())
             self.get_logger().error('kts1 ALC failed to process the tray poses: %r' % (e,))
@@ -506,32 +512,37 @@ class OrderSubInterface(Node):
         try:
             if len(msg.tray_poses) == 0:
                 self.get_logger().info('NO Tray DETECTED')
-            for i, tray_pose in enumerate(msg.tray_poses):
-                # self.get_logger().info(f'DETECTED part {i+1}: ')
-                I_D=tray_pose.id
-                self._part_parent_frame = "kts1_camera_frame"
-                self._part_frame = f"kts1_camera_tray_{i+1}_frame"
-                # self._right_broadcaster_part_pose(pose)
-                trans_coords =self.generate_transform(self._part_parent_frame, self._part_frame, tray_pose)
-                X=round(trans_coords[0],6)
-                Y=round(trans_coords[1],6)
-                Z=round(trans_coords[2],6)
-                oX=round(trans_coords[3],2)
-                oY=round(trans_coords[4],2)
-                oZ=oZ=3.14 if round(trans_coords[5],2) == -3.14 else round(trans_coords[5],2)
-                # self.get_logger().info(f'Detected Tray{i+1} ID :{I_D},')
-                # self.get_logger().info(f'Part {i+1} Location: X :{X}, Y :{Y}, Z :{Z}, oX :{oX}, oY :{oY}, oZ :{oZ} ')
-                ort_var=(X,Y,Z,oX,oY,oZ)
+            else:
+                for i, tray_pose in enumerate(msg.tray_poses):
+                    # self.get_logger().info(f'DETECTED part {i+1}: ')
+                    I_D=tray_pose.id
+                    self._part_parent_frame = "kts1_camera_frame"
+                    self._part_frame = f"kts1_camera_tray_{i+1}_frame"
+                    # self._right_broadcaster_part_pose(pose)
+                    trans_coords =self.generate_transform(self._part_parent_frame, self._part_frame, tray_pose)
+                    if trans_coords == "No":
+                        self._tray_frame_flag = False
+                    else:
+                        self._tray_frame_flag = True
+                        X=round(trans_coords[0],6)
+                        Y=round(trans_coords[1],6)
+                        Z=round(trans_coords[2],6)
+                        oX=round(trans_coords[3],2)
+                        oY=round(trans_coords[4],2)
+                        oZ=oZ=3.14 if round(trans_coords[5],2) == -3.14 else round(trans_coords[5],2)
+                        # self.get_logger().info(f'Detected Tray{i+1} ID :{I_D},')
+                        # self.get_logger().info(f'Part {i+1} Location: X :{X}, Y :{Y}, Z :{Z}, oX :{oX}, oY :{oY}, oZ :{oZ} ')
+                        ort_var=(X,Y,Z,oX,oY,oZ)
 
-                attr_name = f'_{I_D}'
-                if hasattr(self, attr_name):
-                    target_list = getattr(self, attr_name)
-                    if ort_var not in target_list:  
-                        target_list.add(ort_var)
-                        self._tray_dict.update({attr_name:target_list})
-                        self.get_logger().debug(f"Updated {attr_name}: {ort_var}")
-                        self.get_logger().debug(f"Updated Trays dict in kts2 cb: {self._tray_dict}") 
-            
+                        attr_name = f'_{I_D}'
+                        if hasattr(self, attr_name):
+                            target_list = getattr(self, attr_name)
+                            if ort_var not in target_list:  
+                                target_list.add(ort_var)
+                                self._tray_dict.update({attr_name:target_list})
+                                self.get_logger().debug(f"Updated {attr_name}: {ort_var}")
+                                self.get_logger().debug(f"Updated Trays dict in kts2 cb: {self._tray_dict}") 
+                    
 
                                 
 
@@ -558,7 +569,8 @@ class OrderSubInterface(Node):
             The count of assigned parts and trays is updated for future references.
             If any part or tray is not found, it returns a status code indicating failure.
         """
-
+        self.get_logger().info("Inside processing")
+        
         if(len(self._dictionary)==0 or len(self._tray_dict)==0 ):
             self.get_logger().error("No Parts or Trays found.")
             return 0
@@ -566,23 +578,29 @@ class OrderSubInterface(Node):
         else:
             for trayid in order.tray:
                 if(trayid in self._tray_dict):
+                    self.get_logger().info(f'tray id : {trayid}')
                     if(trayid in self.trayCount):
+                        self.get_logger().info('tray id in self.trayCount')
                         self.trayCount[trayid]+=1
                     else:
                         self.trayCount[trayid]=0
+                        self.get_logger().info('first time tray')
                     order.tray[trayid] = list(self._tray_dict[trayid])[self.trayCount[trayid]]
                 else:
                     return 0
             for part in order.parts:
+                self.get_logger().info('Inside part for loop')
                 if(part in self._dictionary):
+                    self.get_logger().info(f'part : {part}')
                     if(part in self.partCount):
                         self.partCount[part]+=1
+                        self.get_logger().info('part in self.partCount')
                     else:
                         self.partCount[part]=0
+                        self.get_logger().info('first time part')
                     order.parts[part] = list(self._dictionary[part])[self.partCount[part]]
                 else:
                     return 0
-            print(order)
             return 1
     
     def timer_cb(self):
@@ -590,84 +608,80 @@ class OrderSubInterface(Node):
         Timer callback function used to simulate the order fulfilling task and publish order lengths.
 
         Notes:
-            This callback function is used to simulate the order fulfilling task for 15 seconds.
+            This callback function is used to simulate the order fulfilling tasks.
             It also implements the functionality to handle high-priority orders.
             Additionally, it publishes the lengths of both low and high orders at a frequency of 1 Hz.
 
         """
+        if self._all_frame_flag:
+            low_orders_length = len(self._low_orders)
+            high_orders_length = len(self._high_orders)
+            self._send_order_length.data=[low_orders_length, high_orders_length]
+            self._order_length_pub.publish(self._send_order_length)
 
-        low_orders_length = len(self._low_orders)
-        high_orders_length = len(self._high_orders)
-        self._send_order_length.data=[low_orders_length, high_orders_length]
-        self._order_length_pub.publish(self._send_order_length)
+            if(self._low_orders and len(self._high_orders)==0):
+                self._counter+=1
+                self.get_logger().info(f'Timer for lowerOrder: {self._counter}')
+                self._lowCheck = self.processing(self._low_orders[0])
+                self.get_logger().info(f'Low check value : {self._lowCheck}')
+                if(self._lowCheck==1):
+                    self._lowCheck=0
+                    poped=self._low_orders.pop(0)
+                    self.get_logger().info(f'fulfilling lower order {poped.id} on AGV number {poped.agv_number}')
+                    self._send_msg.data= poped.agv_number
+                    self._AGV_ID_pub.publish(self._send_msg)
+                    self.get_logger().info('PUBLISHED Lower  Order')
+                    self.get_logger().info(f'- {poped.id}')
+                    for tray in poped.tray:
+                        x,y,z,r,p,w=poped.tray[tray]
+                        id = str(tray)
+                        id = id.replace('_',"")
+                        self.get_logger().info(f'  - ID: {id}')
+                        self.get_logger().info(f'  - Position (xyz): [{x}, {y}, {z}]')
+                        self.get_logger().info(f'  - Orientation (rpy): [{r}, {p}, {w}]')
+                    for part in poped.parts:
+                        x,y,z,r,p,w=poped.parts[part]
+                        color, type = str(part).split("_")[1::]
+                        color = ColorTypeMapper._part_colors[int(color)]
+                        type = ColorTypeMapper._part_types[int(type)]
+                        # print(ColorTypeMapper._part_colors.keys())
+                        self.get_logger().info(f'  - {color} {type}:')
+                        self.get_logger().info(f'    - Position (xyz): [{x}, {y}, {z}]')
+                        self.get_logger().info(f'    - Orientation (rpy): [{r}, {p}, {w}]')
 
-        if(self._low_orders and len(self._high_orders)==0):
-            self._counter+=1
-            self.get_logger().info(f'Timer for lowerOrder: {self._counter}')
-
-            lowCheck = self.processing(self._low_orders[0])
-            if(lowCheck==1):
-                lowCheck=0
-                poped=self._low_orders.pop(0)
-                self.get_logger().info(f'fulfilling lower order {poped.id} on AGV number {poped.agv_number}')
-                self._send_msg.data= poped.agv_number
-                self._AGV_ID_pub.publish(self._send_msg)
-                self.get_logger().info('PUBLISHED Lower  Order')
-                self.get_logger().info(f'- {poped.id}')
-                for tray in poped.tray:
-                    x,y,z,r,p,w=poped.tray[tray]
-                    id = str(tray)
-                    id = id.replace('_',"")
-                    self.get_logger().info(f'  - ID: {id}')
-                    self.get_logger().info(f'  - Position (xyz): [{x}, {y}, {z}]')
-                    self.get_logger().info(f'  - Orientation (rpy): [{r}, {p}, {w}]')
-                for part in poped.parts:
-                    x,y,z,r,p,w=poped.parts[part]
-                    color, type = str(part).split("_")[1::]
-                    color = ColorTypeMapper._part_colors[int(color)]
-                    type = ColorTypeMapper._part_types[int(type)]
-                    print(ColorTypeMapper._part_colors.keys())
-                    self.get_logger().info(f'  - {color} {type}:')
-                    self.get_logger().info(f'    - Position (xyz): [{x}, {y}, {z}]')
-                    self.get_logger().info(f'    - Orientation (rpy): [{r}, {p}, {w}]')
-                
-
-
-
-        elif(self._high_orders or self._h_prior==True):
-            self._h_counter+=1
-            self.get_logger().info(f'Timer for higerOrder: {self._h_counter}')
-
-            highCheck = self.processing(self._high_orders[0])
-            if(highCheck == 1):
-                highCheck=0
-                poped=self._high_orders.pop(0)
-                self.get_logger().info(f'fulfilling higher order {poped.id} on AGV number {poped.agv_number}')
-                self._send_msg.data= poped.agv_number
-                self._AGV_ID_pub.publish(self._send_msg)
-                self._h_prior=False
-                self.get_logger().info('PUBLISHED Higer  Order')
-                self.get_logger().info(f'- {poped.id}')
-                for tray in poped.tray:
-                    x,y,z,r,p,w=poped.tray[tray]
-                    id = str(tray)
-                    id = id.replace('_',"")
-                    self.get_logger().info(f'  - ID: {id}')
-                    self.get_logger().info(f'  - Position (xyz): [{x}, {y}, {z}]')
-                    self.get_logger().info(f'  - Orientation (rpy): [{r}, {p}, {w}]')
-                for part in poped.parts:
-                    x,y,z,r,p,w=poped.parts[part]
-                    color, type = str(part).split("_")[1::]
-                    color = ColorTypeMapper._part_colors[int(color)]
-                    type = ColorTypeMapper._part_types[int(type)]
-                    print(ColorTypeMapper._part_colors.keys())
-                    self.get_logger().info(f'  - {color} {type}:')
-                    self.get_logger().info(f'    - Position (xyz): [{x}, {y}, {z}]')
-                    self.get_logger().info(f'    - Orientation (rpy): [{r}, {p}, {w}]')
-                
-        else:
-            pass
-
+            elif(self._high_orders or self._h_prior==True):
+                self._h_counter+=1
+                self.get_logger().info(f'Timer for higerOrder: {self._h_counter}')
+                self._highCheck = self.processing(self._high_orders[0])
+                self.get_logger().info(f'high check value : {self._highCheck}')
+                if(self._highCheck == 1):
+                    self._highCheck = 0
+                    poped=self._high_orders.pop(0)
+                    self.get_logger().info(f'fulfilling higher order {poped.id} on AGV number {poped.agv_number}')
+                    self._send_msg.data= poped.agv_number
+                    self._AGV_ID_pub.publish(self._send_msg)
+                    self._h_prior=False
+                    self.get_logger().info('PUBLISHED Higer  Order')
+                    self.get_logger().info(f'- {poped.id}')
+                    for tray in poped.tray:
+                        x,y,z,r,p,w=poped.tray[tray]
+                        id = str(tray)
+                        id = id.replace('_',"")
+                        self.get_logger().info(f'  - ID: {id}')
+                        self.get_logger().info(f'  - Position (xyz): [{x}, {y}, {z}]')
+                        self.get_logger().info(f'  - Orientation (rpy): [{r}, {p}, {w}]')
+                    for part in poped.parts:
+                        x,y,z,r,p,w=poped.parts[part]
+                        color, type = str(part).split("_")[1::]
+                        color = ColorTypeMapper._part_colors[int(color)]
+                        type = ColorTypeMapper._part_types[int(type)]
+                        # print(ColorTypeMapper._part_colors.keys())
+                        self.get_logger().info(f'  - {color} {type}:')
+                        self.get_logger().info(f'    - Position (xyz): [{x}, {y}, {z}]')
+                        self.get_logger().info(f'    - Orientation (rpy): [{r}, {p}, {w}]')
+                    
+            else:
+                pass
 
             
     def orders(self, msg):
@@ -686,12 +700,9 @@ class OrderSubInterface(Node):
         if(msg.priority==False):
             self._low_orders.append(Orders(msg))
             self.get_logger().info(f'Received Low Priority Order at : {self._clock.now().nanoseconds/1e9}')
-
         
         #Appending Low prioirity orders in the _high_orders list
         else:
             self._high_orders.append(Orders(msg))
             self.get_logger().info(f'Received High Priority Order at :{self._clock.now().nanoseconds/1e9}')
             self._h_prior=True
-            
-            
