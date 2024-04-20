@@ -5,6 +5,10 @@
   <version>0.0.0</version>
   <description>TODO: Package description</description>
   <maintainer email="hiteshskyatham@gmail.com">hitesh</maintainer>
+  <maintainer email="snairgautam@gmail.com">gautam</maintainer>
+  <maintainer email="amaryanmishra21@gmail.com">aryan</maintainer>
+  <maintainer email="sarin.ann10@gmail.com">sarin</maintainer>
+  <maintainer email="keyurborad5@gmail.com">keyur</maintainer>
   <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

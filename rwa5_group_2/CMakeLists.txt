@@ -7,9 +7,18 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(rclpy REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclpy REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(ariac_msgs REQUIRED)
+find_package(OpenCV REQUIRED)
+
+install(DIRECTORY
+  launch
+  config
+  comp_Img
+  DESTINATION share/${PROJECT_NAME}
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -21,5 +30,19 @@ if(BUILD_TESTING)
   #set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+#--------------------------------
+# Python
+#--------------------------------
+
+# install Python modules from first_package/first_package
+ament_python_install_package(${PROJECT_NAME} SCRIPTS_DESTINATION lib/${PROJECT_NAME})
+
+# install Python executables
+install(PROGRAMS script/check_competition_state.py DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS script/orders.py DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS script/submit_order.py DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS script/ship_orders.py DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS script/sensor_sub_.py DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
