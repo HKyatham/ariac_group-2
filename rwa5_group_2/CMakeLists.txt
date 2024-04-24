@@ -7,16 +7,64 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(rclpy REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(ariac_msgs REQUIRED)
-find_package(OpenCV REQUIRED)
+find_package(ament_cmake_python REQUIRED)
 
-install(DIRECTORY
-  launch
+# include folder which has all the header files
+include_directories(include)
+
+# create a variable for all dependencies
+set(MOVEIT_DEMO_INCLUDE_DEPENDS
+  rclcpp 
+  std_msgs
+  ariac_msgs
+  tf2_ros
+  geometry_msgs
+  tf2
+  orocos_kdl
+  tf2_ros
+  tf2_geometry_msgs
+  moveit_msgs
+  geometric_shapes
+  moveit_ros_planning_interface
+  robot_commander_msgs
+)
+
+# find all dependencies
+foreach(dependency IN ITEMS ${MOVEIT_DEMO_INCLUDE_DEPENDS})
+  find_package(${dependency} REQUIRED)
+endforeach()
+
+
+#-----------------------------
+# C++
+#-----------------------------
+
+
+
+add_executable(moveit_python_exe src/floor_robot_cpp_python.cpp src/main_cpp_python.cpp)
+ament_target_dependencies(moveit_python_exe ${MOVEIT_DEMO_INCLUDE_DEPENDS})
+
+install(TARGETS moveit_python_exe
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
+
+#-----------------------------
+# Installation
+#-----------------------------
+
+install(TARGETS
+moveit_python_exe
+DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY include
+  DESTINATION share/${PROJECT_NAME}/
+)
+
+install(DIRECTORY 
   config
-  comp_Img
+  launch
+  meshes
   DESTINATION share/${PROJECT_NAME}
 )
 
@@ -44,5 +92,6 @@ install(PROGRAMS script/orders.py DESTINATION lib/${PROJECT_NAME})
 install(PROGRAMS script/submit_order.py DESTINATION lib/${PROJECT_NAME})
 install(PROGRAMS script/ship_orders.py DESTINATION lib/${PROJECT_NAME})
 install(PROGRAMS script/sensor_sub_.py DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS script/floor_robot_demo.py DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
