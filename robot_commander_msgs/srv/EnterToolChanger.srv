@@ -1,0 +1,5 @@
+string changing_station
+string gripper_type
+---
+bool success
+string message

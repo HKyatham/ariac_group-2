@@ -1,0 +1,8 @@
+
+uint8 KTS1=1
+uint8 KTS2=2
+
+uint32 kts # KTS1, KTS2
+---
+bool success
+string message

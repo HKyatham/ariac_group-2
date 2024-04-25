@@ -1,0 +1,17 @@
+
+uint8 TRAY_ID0=0
+uint8 TRAY_ID1=1
+uint8 TRAY_ID2=2
+uint8 TRAY_ID3=3
+uint8 TRAY_ID4=4
+uint8 TRAY_ID5=5
+uint8 TRAY_ID6=6
+uint8 TRAY_ID7=7
+uint8 TRAY_ID8=8
+uint8 TRAY_ID9=9
+
+uint8 tray_id #TRAY_ID[0,9]
+geometry_msgs/Pose tray_pose_in_world
+---
+bool success
+string message

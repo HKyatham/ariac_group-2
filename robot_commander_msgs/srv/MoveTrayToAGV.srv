@@ -1,0 +1,10 @@
+
+uint8 AGV1=1
+uint8 AGV2=2
+uint8 AGV3=3
+uint8 AGV4=4
+
+uint32 agv_number # AGV1, AGV2, AGV3, AGV4
+---
+bool success
+string message

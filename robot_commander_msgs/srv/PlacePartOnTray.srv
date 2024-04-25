@@ -1,0 +1,15 @@
+uint8 AGV1=1
+uint8 AGV2=2
+uint8 AGV3=3
+uint8 AGV4=4
+
+uint8 QUADRANT1=1
+uint8 QUADRANT2=2
+uint8 QUADRANT3=3
+uint8 QUADRANT4=4
+
+uint32 agv_number # AGV1, AGV2, AGV3, AGV4
+uint8 quadrant # QUADRANT1, QUADRANT2, QUADRANT3, or QUADRANT4
+---
+bool success
+string message
