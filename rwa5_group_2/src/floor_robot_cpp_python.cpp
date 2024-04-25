@@ -760,7 +760,7 @@ bool FloorRobot::change_gripper(std::string changing_station,
     request->gripper_type =
         ariac_msgs::srv::ChangeGripper::Request::PART_GRIPPER;
   }
-
+  RCLCPP_INFO(get_logger(), "Calling the tool changer service");
   auto future = floor_robot_tool_changer_->async_send_request(request);
 
   future.wait();
@@ -769,7 +769,7 @@ bool FloorRobot::change_gripper(std::string changing_station,
     RCLCPP_ERROR(get_logger(), "Error calling gripper change service");
     return false;
   }
-
+  RCLCPP_INFO(get_logger(), "Tool changer service success, moving the robot");
   waypoints.clear();
   waypoints.push_back(Utils::build_pose(tc_pose.position.x, tc_pose.position.y,
                                         tc_pose.position.z + 0.4,
@@ -782,138 +782,15 @@ bool FloorRobot::change_gripper(std::string changing_station,
 }
 
 //=============================================//
-bool FloorRobot::pick_and_place_tray(int tray_id, int agv_num) // need to add tray pose
-{
-  // Check if kit tray is on one of the two tables
-  geometry_msgs::msg::Pose tray_pose;
-  std::string station;
-  bool found_tray = false;
-
-  // Check table 1
-  for (auto tray : kts1_trays_)
-  {
-    if (tray.id == tray_id)
-    {
-      station = "kts1";
-      tray_pose = Utils::multiply_poses(kts1_camera_pose_, tray.pose);
-      found_tray = true;
-      break;
-    }
-  }
-  // Check table 2
-  if (!found_tray)
-  {
-    for (auto tray : kts2_trays_)
-    {
-      if (tray.id == tray_id)
-      {
-        station = "kts2";
-        tray_pose = Utils::multiply_poses(kts2_camera_pose_, tray.pose);
-        found_tray = true;
-        break;
-      }
-    }
-  }
-  if (!found_tray)
-    return false;
-
-  double tray_rotation = Utils::get_yaw_from_pose(tray_pose);
-
-  // Move floor robot to the corresponding kit tray table
-  if (station == "kts1")
-  {
-    floor_robot_->setJointValueTarget(floor_kts1_js_);
-  }
-  else
-  {
-    floor_robot_->setJointValueTarget(floor_kts2_js_);
-  }
-  move_to_target();
-
-  // Change gripper to tray gripper
-  if (floor_gripper_state_.type != "tray_gripper")
-  {
-    change_gripper(station, "trays");
-  }
-
-  // Move to tray
-  std::vector<geometry_msgs::msg::Pose> waypoints;
-
-  waypoints.push_back(Utils::build_pose(
-      tray_pose.position.x, tray_pose.position.y, tray_pose.position.z + 0.2,
-      set_robot_orientation(tray_rotation)));
-  waypoints.push_back(Utils::build_pose(tray_pose.position.x,
-                                        tray_pose.position.y,
-                                        tray_pose.position.z + pick_offset_,
-                                        set_robot_orientation(tray_rotation)));
-  move_through_waypoints(waypoints, 0.3, 0.3);
-
-  set_gripper_state(true);
-
-  wait_for_attach_completion(3.0);
-
-  // Add kit tray to planning scene
-  std::string tray_name = "kit_tray_" + std::to_string(tray_id);
-  add_single_model_to_planning_scene(tray_name, "kit_tray.stl", tray_pose);
-  floor_robot_->attachObject(tray_name);
-
-  // Move up slightly
-  waypoints.clear();
-  waypoints.push_back(Utils::build_pose(
-      tray_pose.position.x, tray_pose.position.y, tray_pose.position.z + 0.2,
-      set_robot_orientation(tray_rotation)));
-  move_through_waypoints(waypoints, 0.3, 0.3);
-
-  floor_robot_->setJointValueTarget(
-      "linear_actuator_joint",
-      rail_positions_["agv" + std::to_string(agv_num)]);
-  floor_robot_->setJointValueTarget("floor_shoulder_pan_joint", 0);
-
-  move_to_target();
-
-  auto agv_tray_pose =
-      get_pose_in_world_frame("agv" + std::to_string(agv_num) + "_tray");
-  auto agv_rotation = Utils::get_yaw_from_pose(agv_tray_pose);
-
-  waypoints.clear();
-  waypoints.push_back(Utils::build_pose(
-      agv_tray_pose.position.x, agv_tray_pose.position.y,
-      agv_tray_pose.position.z + 0.3, set_robot_orientation(agv_rotation)));
-
-  waypoints.push_back(Utils::build_pose(
-      agv_tray_pose.position.x, agv_tray_pose.position.y,
-      agv_tray_pose.position.z + kit_tray_thickness_ + drop_height_,
-      set_robot_orientation(agv_rotation)));
-
-  move_through_waypoints(waypoints, 0.2, 0.1);
-
-  set_gripper_state(false);
-
-  // object is detached in the planning scene
-  floor_robot_->detachObject(tray_name);
-
-  // publish to robot state
-  // LockAGVTray(agv_num);
-
-  waypoints.clear();
-  waypoints.push_back(Utils::build_pose(
-      agv_tray_pose.position.x, agv_tray_pose.position.y,
-      agv_tray_pose.position.z + 0.3, set_robot_orientation(0)));
-
-  move_through_waypoints(waypoints, 0.2, 0.1);
-
-  return true;
-}
-
 void FloorRobot::pick_part_srv_cb(
-    robot_commander_msgs::srv::MoveTrayToAGV::Request::SharedPtr req,
-    robot_commander_msgs::srv::MoveTrayToAGV::Response::SharedPtr res)
+    robot_commander_msgs::srv::PickPartFromBin::Request::SharedPtr req,
+    robot_commander_msgs::srv::PickPartFromBin::Response::SharedPtr res)
 {
   RCLCPP_INFO(get_logger(), "Received request to pick the part");
   auto part = req->part;
-  auto uid = req->uid;
+  // auto uid = req->uid;
   auto pose = req->part_pose_in_world;
-  if (pick_bin_part(part, pose, uid))
+  if (pick_bin_part(part, pose))
   {
     res->success = true;
     res->message = "Picked the part from bin";
@@ -926,7 +803,7 @@ void FloorRobot::pick_part_srv_cb(
 }
 
 //=============================================//
-bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick, const geometry_msgs::msg::Pose &pose, int uid)
+bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick, const geometry_msgs::msg::Pose &pose)
 {
   RCLCPP_INFO_STREAM(get_logger(), "Attempting to pick a "
                                        << part_colors_[part_to_pick.color]
@@ -969,15 +846,16 @@ bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick, const geometr
 
     
     move_to_target();
+    RCLCPP_INFO(get_logger(), "Changing gripper to part gripper");
 
     change_gripper(station, "parts");
   }
-
+  RCLCPP_INFO(get_logger(), "Moving the robot bin........");
   floor_robot_->setJointValueTarget("linear_actuator_joint",
                                    rail_positions_[bin_side]);
   floor_robot_->setJointValueTarget("floor_shoulder_pan_joint", 0);
   move_to_target();
-
+  RCLCPP_INFO(get_logger(), "Picking the part..........");
   std::vector<geometry_msgs::msg::Pose> waypoints;
   waypoints.push_back(Utils::build_pose(
       part_pose.position.x, part_pose.position.y, part_pose.position.z + 0.5,
@@ -1009,13 +887,14 @@ bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick, const geometr
                         part_pose.position.z + 0.3, set_robot_orientation(0)));
 
   move_through_waypoints(waypoints, 0.3, 0.3);
+  RCLCPP_INFO(get_logger(), "Picking the part..........");
 
   return true;
 }
 
 void FloorRobot::place_part_srv_cb(
-    robot_commander_msgs::srv::MoveTrayToAGV::Request::SharedPtr req,
-    robot_commander_msgs::srv::MoveTrayToAGV::Response::SharedPtr res)
+    robot_commander_msgs::srv::PlacePartOnTray::Request::SharedPtr req,
+    robot_commander_msgs::srv::PlacePartOnTray::Response::SharedPtr res)
 {
   RCLCPP_INFO(get_logger(), "Received request to pick the part");
   auto agv_number = req->agv_number;

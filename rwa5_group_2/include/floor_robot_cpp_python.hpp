@@ -55,6 +55,8 @@
 #include <robot_commander_msgs/srv/move_robot_to_table.hpp>
 #include <robot_commander_msgs/srv/move_robot_to_tray.hpp>
 #include <robot_commander_msgs/srv/move_tray_to_agv.hpp>
+#include <robot_commander_msgs/srv/pick_part_from_bin.hpp>
+#include <robot_commander_msgs/srv/place_part_on_tray.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <std_srvs/srv/trigger.hpp>
@@ -135,6 +137,12 @@ class FloorRobot : public rclcpp::Node {
   //! Service to move the robot to an AGV after picking a tray
   rclcpp::Service<robot_commander_msgs::srv::MoveTrayToAGV>::SharedPtr
       move_tray_to_agv_srv_;
+  //! Service to move the robot to an AGV after picking a tray
+  rclcpp::Service<robot_commander_msgs::srv::PickPartFromBin>::SharedPtr
+      pick_part_srv_;
+  //! Service to move the robot to an AGV after picking a tray
+  rclcpp::Service<robot_commander_msgs::srv::PlacePartOnTray>::SharedPtr
+      place_part_srv_;
   //! Service to move the end effector inside a tool changer
   rclcpp::Service<robot_commander_msgs::srv::EnterToolChanger>::SharedPtr
       enter_tool_changer_srv_;
@@ -186,6 +194,32 @@ class FloorRobot : public rclcpp::Node {
   void move_tray_to_agv_srv_cb(
       robot_commander_msgs::srv::MoveTrayToAGV::Request::SharedPtr req_,
       robot_commander_msgs::srv::MoveTrayToAGV::Response::SharedPtr res_);
+
+  /**
+   * @brief Callback function for the service
+   * /commander/pick_part_from_bin
+   *
+   * @param req_ Shared pointer to
+   * robot_commander_msgs::srv::PickPartFromBin::Request
+   * @param res_ Shared pointer to
+   * robot_commander_msgs::srv::PickPartFromBin::Response
+   */
+  void pick_part_srv_cb(
+      robot_commander_msgs::srv::PickPartFromBin::Request::SharedPtr req_,
+      robot_commander_msgs::srv::PickPartFromBin::Response::SharedPtr res_);
+
+  /**
+   * @brief Callback function for the service
+   * /commander/place_part_on_tray
+   *
+   * @param req_ Shared pointer to
+   * robot_commander_msgs::srv::PlacePartOnTray::Request
+   * @param res_ Shared pointer to
+   * robot_commander_msgs::srv::PlacePartOnTray::Response
+   */
+  void place_part_srv_cb(
+      robot_commander_msgs::srv::PlacePartOnTray::Request::SharedPtr req_,
+      robot_commander_msgs::srv::PlacePartOnTray::Response::SharedPtr res_);
 
   /**
    * @brief  Callback function for the service /commander/enter_tool_changer
@@ -241,6 +275,7 @@ class FloorRobot : public rclcpp::Node {
    */
   bool move_robot_to_tray(int tray_id,
                            const geometry_msgs::msg::Pose &tray_pose);
+
 
   /**
    * @brief  Move the robot to its home pose
@@ -326,7 +361,7 @@ class FloorRobot : public rclcpp::Node {
    * @return true  Successfully picked the part
    * @return false Failed to pick the part
    */
-  bool pick_bin_part(ariac_msgs::msg::Part part_to_pick);
+ bool pick_bin_part(ariac_msgs::msg::Part part_to_pick, const geometry_msgs::msg::Pose &pose);
   //-----------------------------//
 
   /**
