@@ -535,6 +535,10 @@ class FloorRobot : public rclcpp::Node {
   rclcpp::CallbackGroup::SharedPtr subscription_cbg_;
   //! Specific callback group for the state of the gripper
   rclcpp::CallbackGroup::SharedPtr gripper_cbg_;
+  //! Specific callback group for the tool changer client
+  rclcpp::CallbackGroup::SharedPtr tool_changer_callback_group;
+  //! Specific callback group for the gripper enable client
+  rclcpp::CallbackGroup::SharedPtr gripper_enable_callback_group;
   //! Whether "kts1_camera" has received data or not
   bool kts1_camera_received_data = false;
   //! Whether "kts2_camera" has received data or not

@@ -135,8 +135,8 @@ class RobotCommanderInterface(Node):
             1, self._main_timer_cb, callback_group=main_timer_cb_group
         )
         
-        self.tray_flag = True
-        self.part_flag = False
+        self.tray_flag = False
+        self.part_flag = True
         self._grip_change = False
         
         # The following flags are used to ensure an action is not triggered multiple times
@@ -231,32 +231,32 @@ class RobotCommanderInterface(Node):
                 if not self._moving_robot_to_table:
                     self._move_robot_to_table(MoveRobotToTable.Request.KTS1)
             if self._moved_robot_to_table:
-                self.get_logger().info("Check gripper change")
-                if str(self._vacuum_gripper_state.type) == "part_gripper":
-                    self.get_logger().info("Gripper change needed")
-                    self._grip_change = True
-                    # self.gripper_change(self,"kts1","trays",ChangeGripper.Request.TRAY_GRIPPER)
-                else:
-                    self._grip_change = False
-                    self._exited_tool_changer = True
+            #     self.get_logger().info("Check gripper change")
+            #     if str(self._vacuum_gripper_state.type) == "part_gripper":
+            #         self.get_logger().info("Gripper change needed")
+            #         self._grip_change = True
+            #         # self.gripper_change(self,"kts1","trays",ChangeGripper.Request.TRAY_GRIPPER)
+            #     else:
+            #         self._grip_change = False
+            #         self._exited_tool_changer = True
             
-            # if self._grip_change:
-            self.get_logger().info(self._grip_change and (not self._entering_tool_changer))    
-            if self._grip_change and (not self._entering_tool_changer):
-                self._enter_tool_changer("kts1", "trays")
+            # # if self._grip_change:
+            # self.get_logger().info(self._grip_change and (not self._entering_tool_changer))    
+            # if self._grip_change and (not self._entering_tool_changer):
+            #     self._enter_tool_changer("kts1", "trays")
     
-            if self._entered_tool_changer and self._grip_change:
-                if not self._changing_gripper:
-                    self._change_gripper(ChangeGripper.Request.TRAY_GRIPPER)
+            # if self._entered_tool_changer and self._grip_change:
+            #     if not self._changing_gripper:
+            #         self._change_gripper(ChangeGripper.Request.TRAY_GRIPPER)
             
-            if self._changed_gripper and self._grip_change:       
-                self.get_logger().info("Exiting tool changer")
-                if not self._exiting_tool_changer:
-                    self._exit_tool_changer("kts1", "trays")
-            if self._exited_tool_changer:
-                if not self._activating_gripper:
-                    self._activate_gripper()
-            if self._activated_gripper:
+            # if self._changed_gripper and self._grip_change:       
+            #     self.get_logger().info("Exiting tool changer")
+            #     if not self._exiting_tool_changer:
+            #         self._exit_tool_changer("kts1", "trays")
+            # if self._exited_tool_changer:
+            #     if not self._activating_gripper:
+            #         self._activate_gripper()
+            # if self._activated_gripper:
             # Move the robot to the tray
             # TODO: Check whether the tray is picked up by using
             # a subscriber to /ariac/floor_robot_gripper_state
@@ -279,9 +279,9 @@ class RobotCommanderInterface(Node):
                     self._move_tray_to_agv(MoveTrayToAGV.Request.AGV1)
                     
             if self._moved_tray_to_agv:
-                if not self._deactivating_gripper:
-                    self._deactivate_gripper()
-            if self._deactivated_gripper:
+            #     if not self._deactivating_gripper:
+            #         self._deactivate_gripper()
+            # if self._deactivated_gripper:
                 self.tray_flag = False
                 self.part_flag = True
                 self._grip_change = False
@@ -316,30 +316,30 @@ class RobotCommanderInterface(Node):
             if not self._moving_robot_home:
                 self._move_robot_home()
             if self._moved_robot_home:
-                if not self._moving_robot_to_table:
-                    self._move_robot_to_table(MoveRobotToTable.Request.KTS2)
-            if self._moved_robot_to_table:
-                if not self._vacuum_gripper_state.type == "part_gripper":
-                    self.get_logger().info("Gripper change needed")
-                    self._grip_change = True
-                    # self.gripper_change(self,"kts1","trays",ChangeGripper.Request.TRAY_GRIPPER)
-                else:
-                    self._grip_change = False
-            if (not self._entering_tool_changer) and self._grip_change:
-                self._enter_tool_changer("kts2", "parts")
+            #     if not self._moving_robot_to_table:
+            #         self._move_robot_to_table(MoveRobotToTable.Request.KTS2)
+            # if self._moved_robot_to_table:
+            #     if not self._vacuum_gripper_state.type == "part_gripper":
+            #         self.get_logger().info("Gripper change needed")
+            #         self._grip_change = True
+            #         # self.gripper_change(self,"kts1","trays",ChangeGripper.Request.TRAY_GRIPPER)
+            #     else:
+            #         self._grip_change = False
+            # if (not self._entering_tool_changer) and self._grip_change:
+            #     self._enter_tool_changer("kts2", "parts")
     
-            if self._entered_tool_changer and self._grip_change:
-                if not self._changing_gripper:
-                    self._change_gripper(ChangeGripper.Request.PART_GRIPPER)
+            # if self._entered_tool_changer and self._grip_change:
+            #     if not self._changing_gripper:
+            #         self._change_gripper(ChangeGripper.Request.PART_GRIPPER)
             
-            if self._changed_gripper and self._grip_change:       
-                if not self._exiting_tool_changer:
-                    self.get_logger().info("Exiting tool changer")
-                    self._exit_tool_changer("kts2", "parts")
-            if not self._grip_change:
-                if not self._activating_gripper:
-                    self._activate_gripper()
-            if self._activated_gripper:
+            # if self._changed_gripper and self._grip_change:       
+            #     if not self._exiting_tool_changer:
+            #         self.get_logger().info("Exiting tool changer")
+            #         self._exit_tool_changer("kts2", "parts")
+            # if not self._grip_change:
+            #     if not self._activating_gripper:
+            #         self._activate_gripper()
+            # if self._activated_gripper:
                 self._entering_tool_changer = True
                 self._entered_tool_changer = False
                 self._changed_gripper = False
@@ -354,7 +354,7 @@ class RobotCommanderInterface(Node):
                     part_pose = Pose()
                     part_pose.position.x = -2.080000
                     part_pose.position.y = 2.445000
-                    part_pose.position.z = 0.722706
+                    part_pose.position.z = 0.734990
                     part_pose.orientation.x = 0.0
                     part_pose.orientation.y = 0.0
                     part_pose.orientation.z = 1.0

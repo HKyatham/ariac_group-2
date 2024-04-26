@@ -38,7 +38,8 @@ FloorRobot::FloorRobot()
       create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
   options.callback_group = subscription_cbg_;
   gripper_options.callback_group = gripper_cbg_;
-
+  tool_changer_callback_group = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+  gripper_enable_callback_group = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
   
   // subscription to /ariac/floor_robot_gripper/state
   floor_gripper_state_sub_ =
@@ -54,11 +55,11 @@ FloorRobot::FloorRobot()
   // client to /ariac/floor_robot_change_gripper
   floor_robot_tool_changer_ =
       this->create_client<ariac_msgs::srv::ChangeGripper>(
-          "/ariac/floor_robot_change_gripper");
+          "/ariac/floor_robot_change_gripper", rmw_qos_profile_services_default, tool_changer_callback_group);
   // client to /ariac/floor_robot_enable_gripper
   floor_robot_gripper_enable_ =
       this->create_client<ariac_msgs::srv::VacuumGripperControl>(
-          "/ariac/floor_robot_enable_gripper");
+          "/ariac/floor_robot_enable_gripper", rmw_qos_profile_services_default, gripper_enable_callback_group);
 
   //---------------------------------//
   // Services
@@ -185,10 +186,17 @@ void FloorRobot::move_robot_to_table_srv_cb(
 //=============================================//
 bool FloorRobot::move_robot_to_table(int kts)
 {
+  std::string station;
   if (kts == robot_commander_msgs::srv::MoveRobotToTable::Request::KTS1)
+  {
     floor_robot_->setJointValueTarget(floor_kts1_js_);
+    station = "kts1";
+  }
   else if (kts == robot_commander_msgs::srv::MoveRobotToTable::Request::KTS2)
+  {
     floor_robot_->setJointValueTarget(floor_kts2_js_);
+    station = "kts2";
+  }
   else
   {
     RCLCPP_ERROR(get_logger(), "Invalid table number");
@@ -196,6 +204,13 @@ bool FloorRobot::move_robot_to_table(int kts)
   }
 
   move_to_target();
+  if (floor_gripper_state_.type != "tray_gripper")
+  {
+    
+    RCLCPP_INFO(get_logger(), "Changing gripper to part gripper");
+
+    change_gripper(station, "trays");
+  }
   return true;
 }
 
@@ -242,8 +257,8 @@ bool FloorRobot::move_robot_to_tray(
     RCLCPP_ERROR(get_logger(), "Unable to move robot above tray");
     return false;
   }
-
-  // set_gripper_state(true);
+  RCLCPP_INFO(get_logger(), "Activating the gripper");
+  set_gripper_state(true);
 
   wait_for_attach_completion(5.0);
 
@@ -671,7 +686,7 @@ void FloorRobot::wait_for_attach_completion(double timeout)
                          "Waiting for gripper attach");
 
     waypoints.clear();
-    starting_pose.position.z -= 0.001;
+    starting_pose.position.z -= 0.002;
     waypoints.push_back(starting_pose);
 
     move_through_waypoints(waypoints, 0.1, 0.1);
@@ -867,7 +882,7 @@ bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick, const geometr
       set_robot_orientation(part_rotation)));
 
   move_through_waypoints(waypoints, 0.3, 0.3);
-
+  RCLCPP_INFO(get_logger(), "Setting gripper state as true..........");
   set_gripper_state(true);
 
   wait_for_attach_completion(3.0);
