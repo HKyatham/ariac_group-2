@@ -172,15 +172,16 @@ private:
   rclcpp::Executor::SharedPtr executor_;
   std::thread executor_thread_;
 
-  struct order_object_{
+  struct order_object{
         ariac_msgs::msg::Order order;
         bool tray = false;
         bool part = false;
         bool agv = false;
+        bool submit = false;
     };
 
-    std::vector<order_object_> low_orders_;
-    std::vector<order_object_> high_orders_;
+    std::vector<order_object> low_orders_;
+    std::vector<order_object> high_orders_;
 
   /**
    * @brief Provide motion to the floor robot to move its base to one of the
@@ -261,7 +262,7 @@ private:
    * @return true  Successfully completed the kitting task
    * @return false Failed to complete the kitting task
    */
-  bool complete_kitting_task (ariac_msgs::msg::KittingTask task);
+  bool complete_kitting_task (order_object& order);
   //-----------------------------//
 
   /**

@@ -5,6 +5,8 @@ from launch.substitutions import PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import LaunchConfiguration
 from launch.actions import DeclareLaunchArgument
+from ariac_moveit_config.parameters import generate_parameters
+
 
 
 # This function is needed
@@ -15,6 +17,13 @@ def generate_launch_description():
     # Launch descriptor object. 
     ld = LaunchDescription()
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
+    
+    demo_cpp = Node(
+        package="rwa5_group_2",
+        executable="moveit_python_exe",
+        output="screen",
+        parameters=generate_parameters(),
+    )
     
     # Python node check_competition_state_py.
     check_competition_state_py = Node(
@@ -59,4 +68,6 @@ def generate_launch_description():
     ld.add_action(submit_order_py)
     ld.add_action(check_competition_state_py)
     ld.add_action(ship_orders_py)
+    ld.add_action(demo_cpp)
+    
     return ld

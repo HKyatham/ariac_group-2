@@ -221,7 +221,7 @@ bool FloorRobot::move_robot_to_tray(int tray_id,
 
   // set_gripper_state(true);
 
-  wait_for_attach_completion(5.0);
+  wait_for_attach_completion(20.0);
 
   if (floor_gripper_state_.attached)
   {
@@ -442,7 +442,7 @@ void FloorRobot::agv4_status_cb(
 // }
 void FloorRobot::orders_cb(const ariac_msgs::msg::Order::ConstSharedPtr msg) {
   if (!msg) return;  
-  order_object_ p_order;
+  order_object p_order;
   // std::vector<PrioritizedOrder> prioritized_orders_;
   p_order.order = *msg;
   // p_order.order_priority = determine_priority(msg->order_id);
@@ -465,15 +465,15 @@ void FloorRobot::orders_cb(const ariac_msgs::msg::Order::ConstSharedPtr msg) {
   //           });
 }
 
-int FloorRobot::determine_priority(const std::bool& order_priority) {
-  try {
-    // int order = std::stoi(order_priority);
-    return order;
-  } catch (const std::exception& e) {
-    std::cerr << "Error converting order_id to integer: " << e.what() << std::endl;
-    return -1;  
-  }
-}
+// int FloorRobot::determine_priority(const std::bool& order_priority) {
+//   try {
+//     // int order = std::stoi(order_priority);
+//     return order;
+//   } catch (const std::exception& e) {
+//     std::cerr << "Error converting order_id to integer: " << e.what() << std::endl;
+//     return -1;  
+//   }
+// }
 
 //=============================================//
 void FloorRobot::floor_robot_sub_cb(
@@ -600,7 +600,7 @@ void FloorRobot::add_single_model_to_planning_scene(
   shape_msgs::msg::Mesh mesh;
   shapes::ShapeMsg mesh_msg;
 
-  std::string package_share_directory = ament_index_cpp::get_package_share_directory("moveit_demo");
+  std::string package_share_directory = ament_index_cpp::get_package_share_directory("rwa5_group_2");
   std::stringstream path;
   path << "file://" << package_share_directory << "/meshes/" << mesh_file;
   std::string model_path = path.str();
@@ -786,7 +786,7 @@ void FloorRobot::wait_for_attach_completion(double timeout)
                          "Waiting for gripper attach");
 
     waypoints.clear();
-    starting_pose.position.z -= 0.001;
+    starting_pose.position.z -= 0.0002;
     waypoints.push_back(starting_pose);
 
     move_through_waypoints(waypoints, 0.1, 0.1);
@@ -961,7 +961,7 @@ bool FloorRobot::pick_and_place_tray(int tray_id, int agv_num)
 
   set_gripper_state(true);
 
-  wait_for_attach_completion(3.0);
+  wait_for_attach_completion(20.0);
 
   // Add kit tray to planning scene
   std::string tray_name = "kit_tray_" + std::to_string(tray_id);
@@ -1107,7 +1107,7 @@ bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick)
 
   set_gripper_state(true);
 
-  wait_for_attach_completion(3.0);
+  wait_for_attach_completion(20.0);
 
   // Add part to planning scene
   std::string part_name = part_colors_[part_to_pick.color] + "_" + part_types_[part_to_pick.type];
@@ -1187,10 +1187,8 @@ bool FloorRobot::complete_orders() {
     std::this_thread::sleep_for(std::chrono::milliseconds(100)); }
 
   bool success = true; 
-  if (high_orders_.empty()){
-    auto current_order = low_orders_.front();
-  }
-  else{
+  auto current_order = low_orders_.front();
+  if (!high_orders_.empty()){
     auto current_order = high_orders_.front();
   }
 
@@ -1200,7 +1198,7 @@ bool FloorRobot::complete_orders() {
       break;
     }
 
-    if (!high_orders_.empty()){
+    if (!high_orders_.empty() && !current_order.order.priority){
       current_order = high_orders_.front();
     }
     if (current_order.order.type == ariac_msgs::msg::Order::KITTING) {
@@ -1209,7 +1207,7 @@ bool FloorRobot::complete_orders() {
     } else {
         RCLCPP_INFO(get_logger(), "Ignoring non-kitting tasks.");
     }
-    if(current_order.agv){
+    if(current_order.submit){
       if(current_order.order.priority){
         high_orders_.erase(high_orders_.begin());
       }
@@ -1229,30 +1227,30 @@ bool FloorRobot::complete_orders() {
     //   auto current_order = prioritized_orders_.front().order;
     //   prioritized_orders_.erase(prioritized_orders_.begin());
 
-      int kitting_agv_num = -1;
+    //   int kitting_agv_num = -1;
 
-      if (current_order.type == ariac_msgs::msg::Order::KITTING) {
-        complete_kitting_task(current_order.kitting_task);
-        kitting_agv_num = current_order.kitting_task.agv_number;
-      } else {
-        RCLCPP_INFO(get_logger(), "Ignoring non-kitting tasks.");
-      }
-      int agv_location = -1;
-      while (agv_location != ariac_msgs::msg::AGVStatus::WAREHOUSE) {
-        if (kitting_agv_num == 1)
-          agv_location = agv_locations_[1];
-        else if (kitting_agv_num == 2)
-          agv_location = agv_locations_[2];
-        else if (kitting_agv_num == 3)
-          agv_location = agv_locations_[3];
-        else if (kitting_agv_num == 4)
-          agv_location = agv_locations_[4];
-      }
+    //   if (current_order.type == ariac_msgs::msg::Order::KITTING) {
+    //     complete_kitting_task(current_order.kitting_task);
+    //     kitting_agv_num = current_order.kitting_task.agv_number;
+    //   } else {
+    //     RCLCPP_INFO(get_logger(), "Ignoring non-kitting tasks.");
+    //   }
+    //   int agv_location = -1;
+    //   while (agv_location != ariac_msgs::msg::AGVStatus::WAREHOUSE) {
+    //     if (kitting_agv_num == 1)
+    //       agv_location = agv_locations_[1];
+    //     else if (kitting_agv_num == 2)
+    //       agv_location = agv_locations_[2];
+    //     else if (kitting_agv_num == 3)
+    //       agv_location = agv_locations_[3];
+    //     else if (kitting_agv_num == 4)
+    //       agv_location = agv_locations_[4];
+    //   }
 
-      submit_order(current_order.id);
-    } else {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
+    //   submit_order(current_order.id);
+    // } else {
+    //   std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    // }
   }
 
   if (success) {
@@ -1280,21 +1278,30 @@ bool FloorRobot::submit_order(std::string order_id)
 }
 
 //=============================================//
-bool FloorRobot::complete_kitting_task(ariac_msgs::msg::KittingTask task)
+bool FloorRobot::complete_kitting_task(order_object &order)
 {
+
+  if(!order.tray){
   go_home();
-
-  pick_and_place_tray(task.tray_id, task.agv_number);
-
-  for (auto kit_part : task.parts)
-  {
-    pick_bin_part(kit_part.part);
-    place_part_in_tray(task.agv_number, kit_part.quadrant);
+  pick_and_place_tray(order.order.kitting_task.tray_id, order.order.kitting_task.agv_number);
+  RCLCPP_INFO(get_logger(), "Completed tray successfully.");
+  order.tray = true;
+  return true;
   }
 
-  // Check quality
+  if(!order.part){
+  for (auto kit_part : order.order.kitting_task.parts)
+  {
+    pick_bin_part(kit_part.part);
+    place_part_in_tray(order.order.kitting_task.agv_number, kit_part.quadrant);
+  }
+  RCLCPP_INFO(get_logger(), "Completed parts successfully.");
+  order.part = true;
+  return true;
+  }
+  if(!order.agv){
   auto request = std::make_shared<ariac_msgs::srv::PerformQualityCheck::Request>();
-  request->order_id = current_order_.id;
+  request->order_id = order.order.id;
   auto result = quality_checker_->async_send_request(request);
   result.wait();
 
@@ -1304,7 +1311,32 @@ bool FloorRobot::complete_kitting_task(ariac_msgs::msg::KittingTask task)
   }
 
   // move agv to destination
-  move_agv(task.agv_number, task.destination);
+  move_agv(order.order.kitting_task.agv_number, order.order.kitting_task.destination);
+  RCLCPP_INFO(get_logger(), "Completed agv successfully.");
+  order.agv = true;
 
+  return true;
+
+  }
+  if(!order.submit){
+  int kitting_agv_num = -1;
+  kitting_agv_num = order.order.kitting_task.agv_number;
+  int agv_location = -1;
+  while (agv_location != ariac_msgs::msg::AGVStatus::WAREHOUSE) {
+    if (kitting_agv_num == 1)
+      agv_location = agv_locations_[1];
+    else if (kitting_agv_num == 2)
+      agv_location = agv_locations_[2];
+    else if (kitting_agv_num == 3)
+      agv_location = agv_locations_[3];
+    else if (kitting_agv_num == 4)
+      agv_location = agv_locations_[4];
+  }
+
+  submit_order(order.order.id);
+  RCLCPP_INFO(get_logger(), "Completed submit successfully.");
+  order.submit = true;
+  return true;
+  }
   return true;
 }

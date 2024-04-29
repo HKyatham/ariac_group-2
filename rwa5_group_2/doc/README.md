@@ -1,6 +1,6 @@
 # ariac_group-2
 *****Team Members*****
-1. Aryan Mishra- 120426049
+1. Aryan Mishra- 120106521
 2. Gautam Sreenarayanan Nair - 119543092
 3. Hitesh Kyatham - 120275364
 4. Keyur Borad - 120426049

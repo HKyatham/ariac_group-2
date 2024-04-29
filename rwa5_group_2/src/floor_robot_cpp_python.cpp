@@ -59,7 +59,7 @@ FloorRobot::FloorRobot()
   // client to /ariac/floor_robot_enable_gripper
   floor_robot_gripper_enable_ =
       this->create_client<ariac_msgs::srv::VacuumGripperControl>(
-          "/ariac/floor_robot_enable_gripper", rmw_qos_profile_services_default, gripper_enable_callback_group);
+          "/ariac/floor_robot_enable_gripper", rmw_qos_profile_services_default, tool_changer_callback_group);
 
   //---------------------------------//
   // Services
@@ -204,13 +204,13 @@ bool FloorRobot::move_robot_to_table(int kts)
   }
 
   move_to_target();
-  if (floor_gripper_state_.type != "tray_gripper")
-  {
+  // if (floor_gripper_state_.type != "tray_gripper")
+  // {
     
-    RCLCPP_INFO(get_logger(), "Changing gripper to part gripper");
+  //   RCLCPP_INFO(get_logger(), "Changing gripper to part gripper");
 
-    change_gripper(station, "trays");
-  }
+  //   change_gripper(station, "trays");
+  // }
   return true;
 }
 
@@ -258,7 +258,7 @@ bool FloorRobot::move_robot_to_tray(
     return false;
   }
   RCLCPP_INFO(get_logger(), "Activating the gripper");
-  set_gripper_state(true);
+  // set_gripper_state(true);
 
   wait_for_attach_completion(5.0);
 
@@ -686,7 +686,7 @@ void FloorRobot::wait_for_attach_completion(double timeout)
                          "Waiting for gripper attach");
 
     waypoints.clear();
-    starting_pose.position.z -= 0.002;
+    starting_pose.position.z -= 0.001;
     waypoints.push_back(starting_pose);
 
     move_through_waypoints(waypoints, 0.1, 0.1);
@@ -820,14 +820,15 @@ void FloorRobot::pick_part_srv_cb(
 //=============================================//
 bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick, const geometry_msgs::msg::Pose &pose)
 {
-  RCLCPP_INFO_STREAM(get_logger(), "Attempting to pick a "
-                                       << part_colors_[part_to_pick.color]
-                                       << " "
-                                       << part_types_[part_to_pick.type]);
+  // RCLCPP_INFO_STREAM(get_logger(), "Attempting to pick a "
+  //                                      << part_colors_[part_to_pick.color]
+  //                                      << " "
+  //                                      << part_types_[part_to_pick.type]);
 
   // Check if part is in one of the bins
   geometry_msgs::msg::Pose part_pose = pose;
   std::string bin_side;
+  set_gripper_state(false);
 
   // Check left bins
   if (part_pose.position.y < 0)
@@ -842,29 +843,29 @@ bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick, const geometr
   double part_rotation = Utils::get_yaw_from_pose(part_pose);
 
   // Change gripper at location closest to part
-  if (floor_gripper_state_.type != "part_gripper")
-  {
-    std::string station;
-    // Move floor robot to the corresponding kit tray table
-    if (part_pose.position.y < 0)
-    {
-      station = "kts1";
-      RCLCPP_INFO(get_logger(), "Moving the robot to table 1 for gripper change");
-      floor_robot_->setJointValueTarget(floor_kts1_js_);
-    }
-    else
-    {
-      station = "kts2";
-      RCLCPP_INFO(get_logger(), "Moving the robot to table 2 for gripper change");
-      floor_robot_->setJointValueTarget(floor_kts2_js_);
-    }
+  // if (floor_gripper_state_.type != "part_gripper")
+  // {
+  //   std::string station;
+  //   // Move floor robot to the corresponding kit tray table
+  //   if (part_pose.position.y < 0)
+  //   {
+  //     station = "kts1";
+  //     RCLCPP_INFO(get_logger(), "Moving the robot to table 1 for gripper change");
+  //     floor_robot_->setJointValueTarget(floor_kts1_js_);
+  //   }
+  //   else
+  //   {
+  //     station = "kts2";
+  //     RCLCPP_INFO(get_logger(), "Moving the robot to table 2 for gripper change");
+  //     floor_robot_->setJointValueTarget(floor_kts2_js_);
+  //   }
 
     
-    move_to_target();
-    RCLCPP_INFO(get_logger(), "Changing gripper to part gripper");
+  //   move_to_target();
+  //   RCLCPP_INFO(get_logger(), "Changing gripper to part gripper");
 
-    change_gripper(station, "parts");
-  }
+  //   change_gripper(station, "parts");
+  // }
   RCLCPP_INFO(get_logger(), "Moving the robot bin........");
   floor_robot_->setJointValueTarget("linear_actuator_joint",
                                    rail_positions_[bin_side]);
@@ -881,17 +882,25 @@ bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick, const geometr
       part_pose.position.z + part_heights_[part_to_pick.type] + pick_offset_,
       set_robot_orientation(part_rotation)));
 
-  move_through_waypoints(waypoints, 0.3, 0.3);
+  // move_through_waypoints(waypoints, 0.3, 0.3);
+  if (!move_through_waypoints(waypoints, 0.3, 0.3))
+  {
+    RCLCPP_ERROR(get_logger(), "Unable to move robot above part");
+    return false;
+  }
   RCLCPP_INFO(get_logger(), "Setting gripper state as true..........");
   set_gripper_state(true);
 
-  wait_for_attach_completion(3.0);
+  wait_for_attach_completion(20.0);
 
   // Add part to planning scene
+  if (floor_gripper_state_.attached)
+  {
   std::string part_name =
       part_colors_[part_to_pick.color] + "_" + part_types_[part_to_pick.type];
   add_single_model_to_planning_scene(
       part_name, part_types_[part_to_pick.type] + ".stl", part_pose);
+  // part_types_[part_to_pick.type]
   floor_robot_->attachObject(part_name);
   floor_robot_attached_part_ = part_to_pick;
 
@@ -900,11 +909,16 @@ bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick, const geometr
   waypoints.push_back(
       Utils::build_pose(part_pose.position.x, part_pose.position.y,
                         part_pose.position.z + 0.3, set_robot_orientation(0)));
-
-  move_through_waypoints(waypoints, 0.3, 0.3);
+  }
+  if (!move_through_waypoints(waypoints, 0.3, 0.3))
+    {
+      RCLCPP_ERROR(get_logger(), "Unable to move up");
+      return false;
+    }
+    return true;
   RCLCPP_INFO(get_logger(), "Picking the part..........");
 
-  return true;
+  return false;
 }
 
 void FloorRobot::place_part_srv_cb(
