@@ -41,7 +41,8 @@ endforeach()
 
 
 
-add_executable(moveit_python_exe src/floor_robot_cpp_python.cpp src/main_cpp_python.cpp)
+# add_executable(moveit_python_exe src/floor_robot_cpp_python.cpp src/main_cpp_python.cpp)
+add_executable(moveit_python_exe src/floor_robot_cpp_only.cpp src/main_cpp_only.cpp)
 ament_target_dependencies(moveit_python_exe ${MOVEIT_DEMO_INCLUDE_DEPENDS})
 
 install(TARGETS moveit_python_exe

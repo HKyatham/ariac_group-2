@@ -57,7 +57,7 @@ def launch_setup(context, *args, **kwargs):
 
     nodes_to_start = [
         demo_cpp,
-        demo_python
+        # demo_python
         # rviz_node,
         # moveit
     ]
