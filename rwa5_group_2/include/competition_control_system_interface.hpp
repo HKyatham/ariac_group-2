@@ -1,9 +1,8 @@
-/*! \mainpage Main page for the floor robot demo
+/*! \mainpage Main page for the Competition Contrl System
  *
  * \section Installation
  *
  * - cd ~/ariac_ws/src
- * - git clone https://github.com/zeidk/enpm663_summer2023.git -b lecture8
  * - cd ~/ariac_ws
  * - rosdep install --from-paths src -y -i --rosdistro galactic
  * - colcon build
@@ -12,12 +11,11 @@
 /*!
  *  \brief     Class for the floor robot.
  *  \details   The floor robot is capable of completing kitting tasks.
- *  \author    Zeid Kootbally
- *  \author    John Doe (add your teammate's name here)
- *  \version   0.1
- *  \date      July 2023
- *  \warning   Improper use can crash your application
- *  \copyright GNU Public License.
+ *  \author    Keyur
+ *  \author    Aryan
+ *  \author    Sarin
+ *  \author    Gautam
+ *  \author    Hitesh
  */
 
 #pragma once
@@ -70,10 +68,6 @@
 #include <unistd.h>
 
 #include <cmath>
-
-// #include <competitor_interfaces/msg/floor_robot_task.hpp>
-// #include <competitor_interfaces/msg/completed_order.hpp>
-// #include <competitor_msgs/msg/robots_status.hpp>
 
 #include <geometry_msgs/msg/pose.hpp>
 
@@ -160,13 +154,7 @@ public:
   // Private attributes and methods
   //-----------------------------//
 private:
-  //=========== START PYTHON - C++ ===========//
-  /*
-  The following snippets of code are used to send commands to the floor robot
-  from Python. The idea is to implement the CCS in Python (read orders, find
-  parts, find trays, etc.) and then send commands to the floor robot to do
-  motion planning.
-  */
+  
 
   rclcpp::Node::SharedPtr node_;
   rclcpp::Executor::SharedPtr executor_;
@@ -183,36 +171,7 @@ private:
     std::vector<order_object> low_orders_;
     std::vector<order_object> high_orders_;
 
-  /**
-   * @brief Provide motion to the floor robot to move its base to one of the
-   * two tables.
-   *
-   * This method is called from FloorRobot::move_tray_to_agv_srv_cb
-   * @param kts Either 1 or 2
-   */
-  bool move_robot_to_table (int kts);
 
-  /**
-   * @brief Provide motion to the floor robot to move the attached tray above
-   * an AGV.
-   *
-   * @param agv_number
-   * @return true  Motion successful
-   * @return false  Motion failed
-   */
-  bool move_tray_to_agv (int agv_number);
-
-  /**
-   * @brief Provide motion to the floor robot to move the end effector just
-   * above a tray.
-   *
-   * @param tray_id ID of the tray to pick up
-   * @param tray_pose Pose of the tray to pick up
-   * @return true Motion successful
-   * @return false Motion failed
-   */
-  bool move_robot_to_tray (int tray_id,
-                           const geometry_msgs::msg::Pose &tray_pose);
 
   /**
    * @brief  Move the robot to its home pose
@@ -222,39 +181,7 @@ private:
    */
   bool move_robot_home ();
 
-  /**
-   * @brief Move the end effector inside a tool changer
-   *
-   * @param changing_station Name of the changing station
-   * @param gripper_type Type of the gripper to change to
-   * @return true Motion successful
-   * @return false Motion failed
-   */
-  bool enter_tool_changer (std::string changing_station,
-                           std::string gripper_type);
-
-  /**
-   * @brief Move the end effector outside a tool changer
-   *
-   * @param changing_station Name of the changing station
-   * @param gripper_type Type of the gripper to change to
-   * @return true Motion successful
-   * @return false Motion failed
-   */
-  bool exit_tool_changer (std::string changing_station,
-                          std::string gripper_type);
-
-  /**
-   * @brief Identify the priority of the order
-   * 
-   * @param order_id Order details from trial ariac_msgs
-   * @return int Return the priority of the order
-   */
-  int determine_priority(const std::string& order_id);
-  //   int determine_priority(const ariac_msgs::msg::Order &order);
-
-  //=========== END PYTHON - C++ ===========//
-
+//   
   /**
    * @brief Complete a single kitting task
    *
@@ -311,20 +238,25 @@ private:
    * \parblock
    *  Possible value is in the range [1,4]
    * \endparblock
+   * * @param[in] tr_nm Unique name for tray
+   * \parblock
+   *  String type
+   * \endparblock
    * @return true Successfully picked and placed the tray
    * @return false Failed to pick and place the tray
    */
-  bool pick_and_place_tray (int tray_id, int agv_num);
+  bool pick_and_place_tray (int tray_id, int agv_num, std::string tr_nm);
   //-----------------------------//
 
   /**
    * @brief Pick a part from the bin
    *
    * @param part_to_pick Part to pick
+   * @param cnt A unique number for every instance
    * @return true  Successfully picked the part
    * @return false Failed to pick the part
    */
-  bool pick_bin_part (ariac_msgs::msg::Part part_to_pick);
+  bool pick_bin_part (ariac_msgs::msg::Part part_to_pick, int cnt);
   //-----------------------------//
 
   /**
@@ -338,10 +270,11 @@ private:
    * \parblock
    *  Possible value is in the range [1,4]
    * \endparblock
+   * @param cnt A unique number for every instance
    * @return true Successfully placed the part in the tray
    * @return false Failed to place the part in the tray
    */
-  bool place_part_in_tray (int agv_num, int quadrant);
+  bool place_part_in_tray (int agv_num, int quadrant, int cnt);
   //-----------------------------//
 
   /**
@@ -422,6 +355,10 @@ private:
   bool tray_picked_up_ = false;
   bool tray_placed_ = false;
   bool moved_home_ = false;
+  int planning_scene_tray_cnt_{0};
+  int planning_scene_part_cnt_{0};
+
+
   //! Timer for the main loop
   rclcpp::TimerBase::SharedPtr main_timer_;
   //! Main timer callback group

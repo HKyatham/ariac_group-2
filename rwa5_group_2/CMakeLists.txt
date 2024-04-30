@@ -41,11 +41,10 @@ endforeach()
 
 
 
-# add_executable(moveit_python_exe src/floor_robot_cpp_python.cpp src/main_cpp_python.cpp)
-add_executable(moveit_python_exe src/floor_robot_cpp_only.cpp src/main_cpp_only.cpp)
-ament_target_dependencies(moveit_python_exe ${MOVEIT_DEMO_INCLUDE_DEPENDS})
+add_executable(competition_control_system_exe src/competition_control_system.cpp src/main_cpp.cpp)
+ament_target_dependencies(competition_control_system_exe ${MOVEIT_DEMO_INCLUDE_DEPENDS})
 
-install(TARGETS moveit_python_exe
+install(TARGETS competition_control_system_exe
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -54,7 +53,7 @@ install(TARGETS moveit_python_exe
 #-----------------------------
 
 install(TARGETS
-moveit_python_exe
+competition_control_system_exe
 DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -80,19 +79,5 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-#--------------------------------
-# Python
-#--------------------------------
-
-# install Python modules from first_package/first_package
-ament_python_install_package(${PROJECT_NAME} SCRIPTS_DESTINATION lib/${PROJECT_NAME})
-
-# install Python executables
-install(PROGRAMS script/check_competition_state.py DESTINATION lib/${PROJECT_NAME})
-install(PROGRAMS script/orders.py DESTINATION lib/${PROJECT_NAME})
-install(PROGRAMS script/submit_order.py DESTINATION lib/${PROJECT_NAME})
-install(PROGRAMS script/ship_orders.py DESTINATION lib/${PROJECT_NAME})
-install(PROGRAMS script/sensor_sub_.py DESTINATION lib/${PROJECT_NAME})
-install(PROGRAMS script/floor_robot_demo.py DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
