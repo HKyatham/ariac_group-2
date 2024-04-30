@@ -137,9 +137,19 @@ void FloorRobot::main_timer_callback()
     if (!moved_home_)
     {
       move_robot_home();
-      complete_orders();
       moved_home_ = true;
     }
+    else if (!competition_ended_)
+    {     
+     /* code */
+      competition_ended_= complete_orders();
+      if (end_competition())
+      {
+        rclcpp::shutdown ();
+      }
+
+    }
+    
     // if (!tray_picked_up_)
     // {
     //   // Pose for kit tray 3
@@ -153,7 +163,7 @@ void FloorRobot::main_timer_callback()
     //   kit_tray_3_pose.orientation.z = 1.000000;
     //   kit_tray_3_pose.orientation.w = 0.000000;
     //   // Add tray to planning scene
-    //   // TODO: This will generate all sorts of problems if "kit_tray_3"
+    //   // TODO: This will generate all sorts of problems if "kit_tray_3"s
     //   // already exists in the planning scene It can happen that you need
     //   // to build 2 kits and both use tray id 3. You should find a way to
     //   // name each tray differently
@@ -1215,7 +1225,12 @@ bool FloorRobot::complete_orders() {
         low_orders_.erase(low_orders_.begin());
       }
       if (high_orders_.empty()){
-        current_order = low_orders_.front();
+        if (low_orders_.empty()){
+          break;
+          }
+          else{
+          current_order = low_orders_.front();
+          }
       }
       else{
         current_order = high_orders_.front();

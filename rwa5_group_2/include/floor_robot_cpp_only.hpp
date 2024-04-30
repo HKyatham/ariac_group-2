@@ -591,7 +591,7 @@ private:
   //! Distance between the tray and the gripper in meters.
   /*! This is used to place the gripper at a safe distance from the tray when
    * dropping a part in the tray */
-  double drop_height_ = 0.002;
+  double drop_height_ = 0.010;
   //! Distance between the tray and the part in meters.
   /*! This is used to pick up a part */
   double pick_offset_ = 0.003;
