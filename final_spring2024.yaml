@@ -1,0 +1,105 @@
+# Trial Name: final_spring2024.yaml
+
+
+# ENVIRONMENT SETUP
+time_limit: -1 # options: -1 (no time limit) or number of seconds
+gazebo_state_logging: false # options: true or false
+
+challenges:
+  - faulty_part:
+      order_id: 'KITTING03'
+      quadrant1: true
+  - dropped_part:
+        robot: 'floor_robot'
+        type: 'sensor'
+        color: 'green'
+        drop_after: 0
+        delay: 5
+
+kitting_trays: # Which kitting trays will be spawn
+  tray_ids: [1, 1, 2] 
+  slots: [1, 4, 6]
+
+parts:
+  bins: # bin params - 8 total bins each bin has nine total slots (1-9)
+    bin2:
+      - type: 'sensor'
+        color: 'green'
+        slots: [3, 7]
+      - type: 'battery'
+        color: 'orange'
+        slots: [1, 9]
+    bin6:
+      - type: 'sensor'
+        color: 'purple'
+        slots: [2, 4]
+        rotation: 'pi/2'
+    bin5:
+      - type: 'battery'
+        color: 'purple'
+        slots: [1, 9]
+        rotation: 'pi/4'
+    bin1:
+      - type: 'regulator'
+        color: 'green'
+        slots: [4]
+        rotation: 'pi/3'
+      - type: 'pump'
+        color: 'orange'
+        slots: [5]
+        rotation: 'pi/6'
+  
+
+orders:
+  - id: 'KITTING01'
+    type: 'kitting'
+    announcement:
+      time_condition: 0
+    priority: false
+    kitting_task:
+      agv_number: 1
+      tray_id: 1
+      destination: 'warehouse'
+      products:
+        - type: 'pump'
+          color: 'orange'
+          quadrant: 1
+        - type: 'battery'
+          color: 'purple'
+          quadrant: 2
+  - id: 'KITTING02'
+    type: 'kitting'
+    announcement:
+      time_condition: 10
+    priority: true
+    kitting_task:
+      agv_number: 2
+      tray_id: 1
+      destination: 'warehouse'
+      products:
+        - type: 'sensor'
+          color: 'purple'
+          quadrant: 2
+        - type: 'sensor'
+          color: 'purple'
+          quadrant: 3
+        - type: 'regulator'
+          color: 'green'
+          quadrant: 4
+  - id: 'KITTING03'
+    type: 'kitting'
+    announcement:
+      submission_condition:
+        order_id: 'KITTING02'
+    priority: false
+    kitting_task:
+      agv_number: 4
+      tray_id: 2
+      destination: 'warehouse'
+      products:
+        - type: 'battery'
+          color: 'orange'
+          quadrant: 1
+        - type: 'sensor'
+          color: 'green'
+          quadrant: 4
