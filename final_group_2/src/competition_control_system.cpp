@@ -403,7 +403,7 @@ void FloorRobot::add_single_model_to_planning_scene(
   shape_msgs::msg::Mesh mesh;
   shapes::ShapeMsg mesh_msg;
 
-  std::string package_share_directory = ament_index_cpp::get_package_share_directory("rwa5_group_2");
+  std::string package_share_directory = ament_index_cpp::get_package_share_directory("final_group_2");
   std::stringstream path;
   path << "file://" << package_share_directory << "/meshes/" << mesh_file;
   std::string model_path = path.str();
@@ -1074,13 +1074,26 @@ bool FloorRobot::complete_kitting_task(order_object &order)
 
   if(!order.part){
   for (auto kit_part : order.order.kitting_task.parts)
-  {
+  { bool part_picked = false;
+    bool part_placed = false;
     planning_scene_part_cnt_++;
+    part_picked = pick_bin_part(kit_part.part , planning_scene_part_cnt_);
+    if (part_picked){
+      part_placed = place_part_in_tray(order.order.kitting_task.agv_number, kit_part.quadrant, planning_scene_part_cnt_);
+      // if(part_placed){
+      //   // do QC 
+      //   // check that quadrant
+      //   // if that quadrant is false -> pick that part from AGV - > drop it in trash -> call pick_bin_part again
+      //   //
+      // }
+    }
+    else{
+    RCLCPP_INFO(get_logger(), "part pick failed");
+    }
 
-    pick_bin_part(kit_part.part , planning_scene_part_cnt_);
-    place_part_in_tray(order.order.kitting_task.agv_number, kit_part.quadrant, planning_scene_part_cnt_);
+    
   }
-  RCLCPP_INFO(get_logger(), "Completed parts successfully.");
+  RCLCPP_INFO(get_logger(), "Completed parts");
   order.part = true;
   return true;
   }

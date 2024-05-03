@@ -21,7 +21,7 @@ ros2 launch ariac_moveit_config ariac_robots_moveit.launch.py
 
 ***3. Run the following command in terminal-3 (after move it is launched properly)*** 
 ```
-ros2 launch final final.launch.py
+ros2 launch final_group_2 final.launch.py
 ```
 
    
