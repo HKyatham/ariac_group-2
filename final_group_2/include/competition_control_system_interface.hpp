@@ -247,25 +247,25 @@ private:
    */
   bool pick_and_place_tray (int tray_id, int agv_num, std::string tr_nm);
   //-----------------------------//
-  /**
-   * @brief Pick a tray from the kit tray station and place it on the AGV
-   *
-   * @param[in] tray_id ID of the tray to pick
-   * \parblock
-   *  Possible value is in the range [0,9]
-   * \endparblock
-   * @param[in] agv_num Number of the AGV to place the tray on
-   * \parblock
-   *  Possible value is in the range [1,4]
-   * \endparblock
-   * * @param[in] tr_nm Unique name for tray
-   * \parblock
-   *  String type
-   * \endparblock
-   * @return true Successfully picked and placed the tray
-   * @return false Failed to pick and place the tray
-   */
-  bool pick_dispose_faulty_part (ariac_msgs::msg::Part part_to_pick,std::string tr_nm);
+//   /**
+//    * @brief Pick a tray from the kit tray station and place it on the AGV
+//    *
+//    * @param[in] tray_id ID of the tray to pick
+//    * \parblock
+//    *  Possible value is in the range [0,9]
+//    * \endparblock
+//    * @param[in] agv_num Number of the AGV to place the tray on
+//    * \parblock
+//    *  Possible value is in the range [1,4]
+//    * \endparblock
+//    * * @param[in] tr_nm Unique name for tray
+//    * \parblock
+//    *  String type
+//    * \endparblock
+//    * @return true Successfully picked and placed the tray
+//    * @return false Failed to pick and place the tray
+//    */
+//   bool pick_dispose_faulty_part (ariac_msgs::msg::Part part_to_pick,std::string tr_nm);
   //-----------------------------//
 
   /**
@@ -294,7 +294,7 @@ private:
    * @return true Successfully placed the part in the tray
    * @return false Failed to place the part in the tray
    */
-  bool place_part_in_tray (int agv_num, int quadrant, std::string part_nm);
+  bool place_part_in_tray (std::string id,int agv_num, int quadrant, std::string part_nm);
   //-----------------------------//
 
   /**
@@ -609,7 +609,7 @@ private:
   //! Position of the linear actuator for different configurations
   std::map<std::string, double> rail_positions_
       = { { "agv1", -4.5 }, { "agv2", -1.2 },   { "agv3", 1.2 },
-          { "agv4", 4.5 },  { "left_bins", 3 }, { "right_bins", -3 },{"disposal_bin", -4.5}};
+          { "agv4", 4.5 },  { "left_bins", 3 }, { "right_bins", -3 }};
   //! Joint value targets for kit tray station 1
   std::map<std::string, double> floor_kts1_js_
       = { { "linear_actuator_joint", 4.0 },
@@ -619,6 +619,16 @@ private:
           { "floor_wrist_1_joint", -1.57 },
           { "floor_wrist_2_joint", -1.57 },
           { "floor_wrist_3_joint", 0.0 } };
+  //! Joint value targets for disposal_bin_1
+  std::map<std::string, double> disposal_bin_1_js_
+      = { { "linear_actuator_joint", -4.5},
+          { "floor_shoulder_pan_joint", 3.1 },
+          { "floor_shoulder_lift_joint", -1.47},
+          { "floor_elbow_joint", 2.04  },
+          { "floor_wrist_1_joint", -0.65 },
+          { "floor_wrist_2_joint", 0.0 },
+          { "floor_wrist_3_joint", 0.0 } };
+  
   //! Joint value targets for kit tray station 2
   std::map<std::string, double> floor_kts2_js_
       = { { "linear_actuator_joint", -4.0 },

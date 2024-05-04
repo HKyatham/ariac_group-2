@@ -876,7 +876,7 @@ bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick , std::string 
                                        << part_colors_[part_to_pick.color]
                                        << " "
                                        << part_types_[part_to_pick.type]);
-
+  std::string part_name = part_nm ;
   // Check if part is in one of the bins
   geometry_msgs::msg::Pose part_pose;
   bool found_part = false;
@@ -963,7 +963,6 @@ bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick , std::string 
 
   wait_for_attach_completion(20.0);
   // Add part to planning scene
-  std::string part_name = part_nm ;
   add_single_model_to_planning_scene(
       part_name, part_types_[part_to_pick.type] + ".stl", part_pose);
   floor_robot_.attachObject(part_name);
@@ -981,8 +980,8 @@ bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick , std::string 
 }
 
 //=============================================//
-bool FloorRobot::place_part_in_tray(int agv_num, int quadrant, std::string part_nm)
-{
+bool FloorRobot::place_part_in_tray(std::string id, int agv_num, int quadrant, std::string part_nm)
+{ bool faulty_part = false;
   if (!floor_gripper_state_.attached)
   {
     RCLCPP_ERROR(get_logger(), "No part attached");
@@ -994,7 +993,7 @@ bool FloorRobot::place_part_in_tray(int agv_num, int quadrant, std::string part_
       rail_positions_["agv" + std::to_string(agv_num)]);
   floor_robot_.setJointValueTarget("floor_shoulder_pan_joint", 0);
   move_to_target();
-
+  std::string  part_name = part_nm;
   // Determine target pose for part based on agv_tray pose
   auto agv_tray_pose = get_pose_in_world_frame("agv" + std::to_string(agv_num) + "_tray");
 
@@ -1017,12 +1016,48 @@ bool FloorRobot::place_part_in_tray(int agv_num, int quadrant, std::string part_
 
   move_through_waypoints(waypoints, 0.3, 0.3);
 
+  auto request = std::make_shared<ariac_msgs::srv::PerformQualityCheck::Request>();
+  request->order_id = id;
+  auto result = quality_checker_->async_send_request(request);
+  result.wait();
+  auto response = result.get();
+  if (response->quadrant1.faulty_part) {
+    RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-1 inside part in tray");
+    faulty_part = true;
+  }
+  if (response->quadrant2.faulty_part) {
+    RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-2 inside part in tray");  
+    faulty_part = true; 
+  }
+  if (response->quadrant3.faulty_part) {
+    RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-3 inside part in tray");
+    faulty_part = true;
+  }
+  if (response->quadrant4.faulty_part) {
+    RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-4 inside part in tray");
+    faulty_part = true;
+  }
+  if(faulty_part){
+    RCLCPP_INFO(get_logger(), "Faulty part is true");
+    waypoints.clear();
+    waypoints.push_back(Utils::build_pose(
+    part_drop_pose.position.x, part_drop_pose.position.y,
+    part_drop_pose.position.z + 0.3, set_robot_orientation(0)));
+    move_through_waypoints(waypoints, 0.2, 0.1);
+    floor_robot_.setJointValueTarget(disposal_bin_1_js_);
+    move_to_target();
+    set_gripper_state(false);
+
+    floor_robot_.detachObject(part_name);
+    waypoints.clear();
+    // move_robot_home();
+    return true;
+  }
+  else if(!faulty_part){
   // Drop part in quadrant
   set_gripper_state(false);
-
-  std::string part_name = part_nm;
   floor_robot_.detachObject(part_name);
-
+  RCLCPP_INFO(get_logger(), "part dropped");
   waypoints.clear();
   waypoints.push_back(Utils::build_pose(
       part_drop_pose.position.x, part_drop_pose.position.y,
@@ -1033,76 +1068,9 @@ bool FloorRobot::place_part_in_tray(int agv_num, int quadrant, std::string part_
 
   return true;
 }
-//=============================================//
-bool FloorRobot::pick_dispose_faulty_part(ariac_msgs::msg::Part part_to_pick , std::string part_nm)
-{
-  // std::string station;
-  // bool faulty_part_picked = false;
-  // Move to drop location
-  std::string part_name = part_nm ;
-  std::vector<geometry_msgs::msg::Pose> waypoints;
-  waypoints.push_back(Utils::build_pose(
-      part_drop_pose_global_.position.x, part_drop_pose_global_.position.y, part_drop_pose_global_.position.z - drop_height_,
-      set_robot_orientation(0)));
-
-  waypoints.push_back(Utils::build_pose(
-      part_drop_pose_global_.position.x, part_drop_pose_global_.position.y,
-      part_drop_pose_global_.position.z - drop_height_ - part_heights_[part_to_pick.type] - pick_offset_,
-      set_robot_orientation(0)));
-  move_through_waypoints(waypoints, 0.3, 0.3);
-
-  set_gripper_state(true);
-
-  wait_for_attach_completion(20.0);
-  floor_robot_.attachObject(part_name);
-
-  // Move up slightly
-  waypoints.clear();
-  waypoints.push_back(Utils::build_pose(
-      part_drop_pose_global_.position.x, part_drop_pose_global_.position.y, part_drop_pose_global_.position.z + 0.2,
-      set_robot_orientation(0)));
-  move_through_waypoints(waypoints, 0.3, 0.3);
-
-  floor_robot_.setJointValueTarget(
-      "linear_actuator_joint",
-      rail_positions_["disposal_bin"]);
-  floor_robot_.setJointValueTarget("floor_shoulder_pan_joint", 0);
-
-  move_to_target();
-
-  part_drop_pose_global_.position.x = -0.60;
-  part_drop_pose_global_.position.y = 4.72;
-  part_drop_pose_global_.position.z = 0.2;
-
-  waypoints.clear();
-  waypoints.push_back(Utils::build_pose(
-      part_drop_pose_global_.position.x, part_drop_pose_global_.position.y,
-      part_drop_pose_global_.position.z + 0.1, set_robot_orientation(0)));
-
-  waypoints.push_back(Utils::build_pose(
-      part_drop_pose_global_.position.x, part_drop_pose_global_.position.y,
-      part_drop_pose_global_.position.z + 0.1 + drop_height_,
-      set_robot_orientation(0)));
-
-  move_through_waypoints(waypoints, 0.2, 0.1);
-
-  set_gripper_state(false);
-
-  // object is detached in the planning scene
-  floor_robot_.detachObject(part_name);
-
-  waypoints.clear();
-  // move up slight
-  waypoints.push_back(Utils::build_pose(
-      part_drop_pose_global_.position.x, part_drop_pose_global_.position.y,
-      part_drop_pose_global_.position.z + 0.3, set_robot_orientation(0)));
-
-  move_through_waypoints(waypoints, 0.2, 0.1);
-
-  return true;
 }
 
-//=============================================//
+// //=============================================//
 bool FloorRobot::complete_orders() {
     while (low_orders_.empty() && high_orders_.empty()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100)); }
@@ -1190,53 +1158,53 @@ bool FloorRobot::complete_kitting_task(order_object &order)
 
   if(!order.part){
   for (auto kit_part : order.order.kitting_task.parts)
-  { bool faulty_part = false;
+  {
+    // bool faulty_part = false;
     bool part_picked = false;
     bool part_placed = false;
     planning_scene_part_cnt_++;
     std::string part_name = part_colors_[kit_part.part.color] + "_" + part_types_[kit_part.part.type]+"_"+std::to_string(planning_scene_part_cnt_);
     part_picked = pick_bin_part(kit_part.part ,part_name);
     if (part_picked){
-      part_placed = place_part_in_tray(order.order.kitting_task.agv_number, kit_part.quadrant, part_name);
-      if(part_placed){
-          auto request = std::make_shared<ariac_msgs::srv::PerformQualityCheck::Request>();
-          request->order_id = order.order.id;
-          auto result = quality_checker_->async_send_request(request);
-          result.wait();
-          auto response = result.get();
-          if (response->quadrant1.faulty_part) {
-            RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-1");
-            faulty_part = true;
-          }
-          if (response->quadrant2.faulty_part) {
-            RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-2");  
-            faulty_part = true; 
-          }
-          if (response->quadrant3.faulty_part) {
-            RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-3");
-            faulty_part = true;
-          }
-          if (response->quadrant4.faulty_part) {
-            RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-4");
-            faulty_part = true;
-          }
-          if (faulty_part){
-             pick_dispose_faulty_part(kit_part.part,part_name);
-            //remove part from planning scene 
-            //pick_bin_part again
-          }
+      part_placed = place_part_in_tray(order.order.id,order.order.kitting_task.agv_number, kit_part.quadrant, part_name);
+      // if(part_placed){
+      //     auto request = std::make_shared<ariac_msgs::srv::PerformQualityCheck::Request>();
+      //     request->order_id = order.order.id;
+      //     auto result = quality_checker_->async_send_request(request);
+      //     result.wait();
+      //     auto response = result.get();
+      //     if (response->quadrant1.faulty_part) {
+      //       RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-1");
+      //       faulty_part = true;
+      //     }
+      //     if (response->quadrant2.faulty_part) {
+      //       RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-2");  
+      //       faulty_part = true; 
+      //     }
+      //     if (response->quadrant3.faulty_part) {
+      //       RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-3");
+      //       faulty_part = true;
+      //     }
+      //     if (response->quadrant4.faulty_part) {
+      //       RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-4");
+      //       faulty_part = true;
+      //     }
+      //     if (faulty_part){
+      //        pick_dispose_faulty_part(kit_part.part,part_name);
+      //       //remove part from planning scene 
+      //       //pick_bin_part again
+      //     }
       }
-    }
-    else{
+      else{
     RCLCPP_INFO(get_logger(), "part pick failed");
     }
-
+    }
     
-  }
   RCLCPP_INFO(get_logger(), "Completed parts");
   order.part = true;
   return true;
   }
+
   if(!order.agv){
   auto request = std::make_shared<ariac_msgs::srv::PerformQualityCheck::Request>();
   request->order_id = order.order.id;
@@ -1252,9 +1220,7 @@ bool FloorRobot::complete_kitting_task(order_object &order)
   move_agv(order.order.kitting_task.agv_number, order.order.kitting_task.destination);
   RCLCPP_INFO(get_logger(), "Completed agv successfully.");
   order.agv = true;
-
   return true;
-
   }
   if(!order.submit){
   int kitting_agv_num = -1;
