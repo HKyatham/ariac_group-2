@@ -967,6 +967,9 @@ bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick , std::string 
       part_name, part_types_[part_to_pick.type] + ".stl", part_pose);
   floor_robot_.attachObject(part_name);
   floor_robot_attached_part_ = part_to_pick;
+  RCLCPP_ERROR(get_logger(), "timer for wait started");
+  std::this_thread::sleep_for(std::chrono::seconds(10));
+  RCLCPP_ERROR(get_logger(), "timer for wait ended");
 
   // Move up slightly
   waypoints.clear();
@@ -975,7 +978,6 @@ bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick , std::string 
       set_robot_orientation(0)));
 
   move_through_waypoints(waypoints, 0.3, 0.3);
-
   return true;
 }
 
@@ -1062,12 +1064,12 @@ bool FloorRobot::place_part_in_tray(std::string id, int agv_num, int quadrant, s
   waypoints.push_back(Utils::build_pose(
       part_drop_pose.position.x, part_drop_pose.position.y,
       part_drop_pose.position.z + 0.3, set_robot_orientation(0)));
-
   move_through_waypoints(waypoints, 0.2, 0.1);
   waypoints.clear();
 
   return true;
 }
+return true;
 }
 
 // //=============================================//
@@ -1167,34 +1169,10 @@ bool FloorRobot::complete_kitting_task(order_object &order)
     part_picked = pick_bin_part(kit_part.part ,part_name);
     if (part_picked){
       part_placed = place_part_in_tray(order.order.id,order.order.kitting_task.agv_number, kit_part.quadrant, part_name);
-      // if(part_placed){
-      //     auto request = std::make_shared<ariac_msgs::srv::PerformQualityCheck::Request>();
-      //     request->order_id = order.order.id;
-      //     auto result = quality_checker_->async_send_request(request);
-      //     result.wait();
-      //     auto response = result.get();
-      //     if (response->quadrant1.faulty_part) {
-      //       RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-1");
-      //       faulty_part = true;
-      //     }
-      //     if (response->quadrant2.faulty_part) {
-      //       RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-2");  
-      //       faulty_part = true; 
-      //     }
-      //     if (response->quadrant3.faulty_part) {
-      //       RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-3");
-      //       faulty_part = true;
-      //     }
-      //     if (response->quadrant4.faulty_part) {
-      //       RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-4");
-      //       faulty_part = true;
-      //     }
-      //     if (faulty_part){
-      //        pick_dispose_faulty_part(kit_part.part,part_name);
-      //       //remove part from planning scene 
-      //       //pick_bin_part again
-      //     }
+      if(part_placed){
+        RCLCPP_INFO(get_logger(), "place part on tray returned true");   
       }
+    }
       else{
     RCLCPP_INFO(get_logger(), "part pick failed");
     }
