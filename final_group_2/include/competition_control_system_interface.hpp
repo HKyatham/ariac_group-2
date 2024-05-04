@@ -247,6 +247,26 @@ private:
    */
   bool pick_and_place_tray (int tray_id, int agv_num, std::string tr_nm);
   //-----------------------------//
+  /**
+   * @brief Pick a tray from the kit tray station and place it on the AGV
+   *
+   * @param[in] tray_id ID of the tray to pick
+   * \parblock
+   *  Possible value is in the range [0,9]
+   * \endparblock
+   * @param[in] agv_num Number of the AGV to place the tray on
+   * \parblock
+   *  Possible value is in the range [1,4]
+   * \endparblock
+   * * @param[in] tr_nm Unique name for tray
+   * \parblock
+   *  String type
+   * \endparblock
+   * @return true Successfully picked and placed the tray
+   * @return false Failed to pick and place the tray
+   */
+  bool pick_dispose_faulty_part (ariac_msgs::msg::Part part_to_pick,std::string tr_nm);
+  //-----------------------------//
 
   /**
    * @brief Pick a part from the bin
@@ -256,7 +276,7 @@ private:
    * @return true  Successfully picked the part
    * @return false Failed to pick the part
    */
-  bool pick_bin_part (ariac_msgs::msg::Part part_to_pick, int cnt);
+  bool pick_bin_part (ariac_msgs::msg::Part part_to_pick, std::string part_nm);
   //-----------------------------//
 
   /**
@@ -274,7 +294,7 @@ private:
    * @return true Successfully placed the part in the tray
    * @return false Failed to place the part in the tray
    */
-  bool place_part_in_tray (int agv_num, int quadrant, int cnt);
+  bool place_part_in_tray (int agv_num, int quadrant, std::string part_nm);
   //-----------------------------//
 
   /**
@@ -367,6 +387,8 @@ private:
   void main_timer_callback ();
   //! Current order being processed
   ariac_msgs::msg::Order current_order_;
+  //
+  geometry_msgs::msg::Pose part_drop_pose_global_;
   //! List of received orders
 //   std::vector<ariac_msgs::msg::Order> orders_;
   //! Move group interface for the floor robot
@@ -437,37 +459,37 @@ private:
   //! Part attached to the gripper.
   ariac_msgs::msg::Part floor_robot_attached_part_;
   //! Pose of the camera "kts1_camera" in the world frame
-  /*!
-  \note This attribute is set in the camera callback. You can hardcode it if
-  you prefer.
-  */
   geometry_msgs::msg::Pose kts1_camera_pose_;
   //! Pose of the camera "kts2_camera" in the world frame
-  /*!
-  \note This attribute is set in the camera callback. You can hardcode it if
-  you prefer.
-  */
   geometry_msgs::msg::Pose kts2_camera_pose_;
   //! Pose of the camera "left_bins_camera" in the world frame
-  /*!
-  \note This attribute is set in the camera callback. You can hardcode it if
-  you prefer.
-  */
   geometry_msgs::msg::Pose left_bins_camera_pose_;
   //! Pose of the camera "right_bins_camera" in the world frame
-  /*!
-  \note This attribute is set in the camera callback. You can hardcode it if
-  you prefer.
-  */
   geometry_msgs::msg::Pose right_bins_camera_pose_;
+//   //! Pose of the camera "agv1_camera" in the world frame
+//   geometry_msgs::msg::Pose agv1_camera_pose_;
+//   //! Pose of the camera "agv2_camera" in the world frame
+//   geometry_msgs::msg::Pose agv2_camera_pose_;
+//   //! Pose of the camera "agv3_camera" in the world frame
+//   geometry_msgs::msg::Pose agv3_camera_pose_;
+//   //! Pose of the camera "agv4_camera" in the world frame
+//   geometry_msgs::msg::Pose agv4_camera_pose_;
   //! Pose of trays found by "kts1_camera"
   std::vector<ariac_msgs::msg::KitTrayPose> kts1_trays_;
   //! Pose of trays found by "kts2_camera"
   std::vector<ariac_msgs::msg::KitTrayPose> kts2_trays_;
-  //! Pose of trays found by "left_bins_camera"
+  //! Pose of parts found by "left_bins_camera"
   std::vector<ariac_msgs::msg::PartPose> left_bins_parts_;
-  //! Pose of trays found by "right_bins_camera"
+  //! Pose of parts found by "right_bins_camera"
   std::vector<ariac_msgs::msg::PartPose> right_bins_parts_;
+//   //! Pose of parts found by "agv1_camera"
+//   std::vector<ariac_msgs::msg::PartPose> agv1_parts_;
+//   //! Pose of parts found by "agv2_camera"
+//   std::vector<ariac_msgs::msg::PartPose> agv2_parts_;
+//   //! Pose of parts found by "agv3_camera"
+//   std::vector<ariac_msgs::msg::PartPose> agv3_parts_;
+//   //! Pose of parts found by "agv4_camera"
+//   std::vector<ariac_msgs::msg::PartPose> agv4_parts_;
   //! Callback group for the subscriptions
   rclcpp::CallbackGroup::SharedPtr subscription_cbg_;
   //! Specific callback group for the state of the gripper
@@ -481,6 +503,14 @@ private:
   bool left_bins_camera_received_data = false;
   //! Whether "right_bins_camera" has received data or not
   bool right_bins_camera_received_data = false;
+//   //! Whether "agv1_camera" has received data or not
+//   bool agv1_camera_received_data = false;
+//   //! Whether "agv2_camera" has received data or not
+//   bool agv2_camera_received_data = false;
+//   //! Whether "agv3_camera" has received data or not
+//   bool agv3_camera_received_data = false;
+//   //! Whether "agv4_camera" has received data or not
+//   bool agv4_camera_received_data = false;
   //! Callback for "/moveit_demo/demo" topic
   void floor_robot_sub_cb (const std_msgs::msg::String::ConstSharedPtr msg);
   //! Callback for "/ariac/orders" topic
@@ -496,6 +526,18 @@ private:
       const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg);
   //! Callback for "/ariac/sensors/right_bins_camera/image" topic
   void right_bins_camera_cb (
+      const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg);
+  //! Callback for "/ariac/sensors/agv1_camera/image" topic
+  void agv1_camera_cb (
+      const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg);
+  //! Callback for "/ariac/sensors/agv2_camera/image" topic
+  void agv2_camera_cb (
+      const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg);
+  //! Callback for "/ariac/sensors/agv3_camera/image" topic
+  void agv3_camera_cb (
+      const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg);
+  //! Callback for "/ariac/sensors/agv4_camera/image" topic
+  void agv4_camera_cb (
       const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg);
   //! Callback for "/ariac/competition_state" topic
   void competition_state_cb (
@@ -567,7 +609,7 @@ private:
   //! Position of the linear actuator for different configurations
   std::map<std::string, double> rail_positions_
       = { { "agv1", -4.5 }, { "agv2", -1.2 },   { "agv3", 1.2 },
-          { "agv4", 4.5 },  { "left_bins", 3 }, { "right_bins", -3 } };
+          { "agv4", 4.5 },  { "left_bins", 3 }, { "right_bins", -3 },{"disposal_bin", -4.5}};
   //! Joint value targets for kit tray station 1
   std::map<std::string, double> floor_kts1_js_
       = { { "linear_actuator_joint", 4.0 },
