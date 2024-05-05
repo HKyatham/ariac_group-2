@@ -70,6 +70,7 @@
 #include <thread>
 #include <cmath>
 #include <geometry_msgs/msg/pose.hpp>
+#include <iostream>
 
 /**
  * @brief Class for the floor robot
@@ -160,6 +161,7 @@ private:
   rclcpp::Executor::SharedPtr executor_;
   std::thread executor_thread_;
 
+  
   struct order_object{
         ariac_msgs::msg::Order order;
         bool tray = false;
@@ -277,8 +279,7 @@ private:
    * @return false Failed to pick the part
    */
   bool pick_bin_part (ariac_msgs::msg::Part part_to_pick, std::string part_nm);
-  //-----------------------------//
-
+  //------------------------------//
   /**
    * @brief Place a part in a quadrant in the tray
    *
@@ -449,6 +450,8 @@ private:
       - ENDED=4
   */
   unsigned int competition_state_;
+//   std::vector<ariac_msgs::msg::KittingPart> low_order_parts_;
+  std::list<ariac_msgs::msg::KittingPart> low_order_parts_;
   //! State of the gripper.
   /*!
       - enabled: True if the gripper is enabled.
@@ -511,6 +514,8 @@ private:
 //   bool agv3_camera_received_data = false;
 //   //! Whether "agv4_camera" has received data or not
 //   bool agv4_camera_received_data = false;
+
+  
   //! Callback for "/moveit_demo/demo" topic
   void floor_robot_sub_cb (const std_msgs::msg::String::ConstSharedPtr msg);
   //! Callback for "/ariac/orders" topic
