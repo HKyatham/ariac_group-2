@@ -1158,7 +1158,7 @@ bool FloorRobot::complete_orders() {
           }
           else{
             current_order = low_orders_.front();
-            if (low_order_parts_.empty()) {
+            if (low_order_parts_.empty() && lower_order_flag == true) {
               RCLCPP_INFO(get_logger(), "low_order_parts_ is empty");
               for (auto part : current_order.order.kitting_task.parts){
                 low_order_parts_.push_back(part);
@@ -1214,9 +1214,10 @@ bool FloorRobot::complete_kitting_task(order_object &order)
 
   if(!order.part){
     if(!order.order.priority){
-      RCLCPP_INFO(get_logger(), "Inside if !order.part , Number of low order parts: %zu", low_order_parts_.size());
+      lower_order_flag = false;
       for (auto it = low_order_parts_.begin(); it != low_order_parts_.end();)
       { 
+      RCLCPP_INFO(get_logger(), "Inside if !order.part for loop , Number of low order parts: %zu", low_order_parts_.size());
         auto& kit_part = *it;
         bool part_picked = false;
         bool part_placed = false;
@@ -1228,7 +1229,9 @@ bool FloorRobot::complete_kitting_task(order_object &order)
           if(part_placed){
             RCLCPP_INFO(get_logger(), "place part on tray returned true"); 
             it = low_order_parts_.erase(it);  
-            // ++it;
+             if (it != low_order_parts_.end()) {
+                    ++it;
+                }
           }
           else {
             RCLCPP_INFO(get_logger(), "place part on tray returned false");
@@ -1237,10 +1240,13 @@ bool FloorRobot::complete_kitting_task(order_object &order)
         }
         else{
           RCLCPP_INFO(get_logger(), "part pick failed");
-          ++it;
-          continue;
+          if (it != low_order_parts_.end()) {
+                    ++it;
+                }
         }
       }
+    RCLCPP_INFO(get_logger(), "Outside  !order.part for loop, Number of low order parts: %zu", low_order_parts_.size());
+
     }
     else if(order.order.priority){
       for (auto it = order.order.kitting_task.parts.begin(); it != order.order.kitting_task.parts.end();) {
@@ -1274,9 +1280,10 @@ bool FloorRobot::complete_kitting_task(order_object &order)
 
   if(!order.agv){
   if(!order.order.priority){
+  RCLCPP_INFO(get_logger(), "Inside !order.agv, Number of low order parts: %zu", low_order_parts_.size());
   low_order_parts_.clear();
+  lower_order_flag = true;
   }
-   RCLCPP_INFO(get_logger(), "Inside !order.agv, Number of low order parts: %zu", low_order_parts_.size());
   auto request = std::make_shared<ariac_msgs::srv::PerformQualityCheck::Request>();
   request->order_id = order.order.id;
   auto result = quality_checker_->async_send_request(request);

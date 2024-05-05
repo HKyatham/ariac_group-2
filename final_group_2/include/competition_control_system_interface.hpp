@@ -506,6 +506,8 @@ private:
   bool left_bins_camera_received_data = false;
   //! Whether "right_bins_camera" has received data or not
   bool right_bins_camera_received_data = false;
+   //! Whether "right_bins_camera" has received data or not
+  bool lower_order_flag = false;
 //   //! Whether "agv1_camera" has received data or not
 //   bool agv1_camera_received_data = false;
 //   //! Whether "agv2_camera" has received data or not
