@@ -8,9 +8,24 @@
 **************************************
 ******Instructions to run*************
 1. Run the following command in terminal-1
+```
 ros2 launch ariac_gazebo ariac.launch.py trial_name:=rwax_spring2024
-
-2. Run the following command in terminal-2
+```
+3. Run the following command in terminal-2
+```
 ros2 launch rwax_group_2 rwax.launch.py
-
+```
+##PYTHON LIBRARIES
+YOLO V8 MODEL
+```
+pip install ultralytics
+```
+OPEN CV - CONTRIB
+```
+pip install opencv-contrib-python
+```
+OPEN CV
+```
+pip install opencv-python
+```
    
