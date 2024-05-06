@@ -474,6 +474,13 @@ void FloorRobot::add_single_model_to_planning_scene(
 
   planning_scene_.addCollisionObjects(collision_objects);
 }
+//==============================================//
+void FloorRobot::remove_single_model_from_planning_scene(std::string name)
+{
+    std::vector<std::string> object_ids;
+    object_ids.push_back(name);
+    planning_scene_.removeCollisionObjects(object_ids);
+}
 
 //=============================================//
 void FloorRobot::add_models_to_planning_scene()
@@ -1048,22 +1055,6 @@ bool FloorRobot::place_part_in_tray(std::string id, int agv_num, int quadrant, s
         RCLCPP_INFO(get_logger(), "Faulty part detected");
         faulty_part = true;
     }
-  // if (response->quadrant1.faulty_part) {
-  //   RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-1 inside part in tray");
-  //   faulty_part = true;
-  // }
-  // if (response->quadrant2.faulty_part) {
-  //   RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-2 inside part in tray");  
-  //   faulty_part = true; 
-  // }
-  // if (response->quadrant3.faulty_part) {
-  //   RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-3 inside part in tray");
-  //   faulty_part = true;
-  // }
-  // if (response->quadrant4.faulty_part) {
-  //   RCLCPP_INFO(get_logger(), "Faulty part detected in Quadrant-4 inside part in tray");
-  //   faulty_part = true;
-  // }
   if(faulty_part){
     RCLCPP_INFO(get_logger(), "Faulty part detected - initiating disposal");
     waypoints.clear();
@@ -1072,7 +1063,7 @@ bool FloorRobot::place_part_in_tray(std::string id, int agv_num, int quadrant, s
     part_drop_pose.position.z + 0.3, set_robot_orientation(0)));
     move_through_waypoints(waypoints, 0.2, 0.1);
     // std::string disposal_bin;
-    // if (part_pose.position.y < 0)
+    // if (part_drop_pose.position.y < 0)
     // {
     //   disposal_bin = "disposal_bin1";
     // }
@@ -1094,6 +1085,7 @@ bool FloorRobot::place_part_in_tray(std::string id, int agv_num, int quadrant, s
     move_to_target();
     set_gripper_state(false);
     floor_robot_.detachObject(part_name);
+    remove_single_model_from_planning_scene(part_name);
     waypoints.clear();
     return false;
   } else {

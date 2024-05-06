@@ -359,6 +359,15 @@ private:
   //-----------------------------//
 
   /**
+ * @brief Remove a single model from the planning scene
+ *
+ * @param name Name of the model to be removed
+ */
+  void remove_single_model_from_planning_scene(std::string name);
+  //-----------------------------//
+
+
+  /**
    * @brief Add static models to the planning scene
    *
    * Static models include the bins, tray tables, assembly stations, assembly
