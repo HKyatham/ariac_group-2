@@ -274,7 +274,19 @@ private:
    * @return true Successfully placed the part in the tray
    * @return false Failed to place the part in the tray
    */
-  bool place_part_in_tray (std::string id,int agv_num, int quadrant, std::string part_nm);
+  bool place_part_in_tray (std::string id,int agv_num, int quadrant, ariac_msgs::msg::Part part_to_pick, std::string part_nm);
+  //-----------------------------//
+  /**
+   * @brief Place a part in a quadrant in the tray when part falls on agv
+   * 
+   * @param part_to_pick Part to pick
+   * @param agv_num AGV number
+   * @param part_drop_pose Part pose on quadrant
+   * @param part_nm unique name for planning scene
+   * @return true 
+   * @return false 
+   */
+  bool pick_part_from_agv(ariac_msgs::msg::Part part_to_pick, int agv_num, geometry_msgs::msg::Pose part_drop_pose, std::string part_nm);
   //-----------------------------//
 
   /**
