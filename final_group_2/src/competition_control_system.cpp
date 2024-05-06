@@ -63,30 +63,6 @@ FloorRobot::FloorRobot()
       std::bind(&FloorRobot::right_bins_camera_cb, this,
                 std::placeholders::_1),
       options);
-  // subscription to /ariac/sensors/agv1_camera/image
-  agv1_camera_sub_ = this->create_subscription<
-      ariac_msgs::msg::AdvancedLogicalCameraImage>(
-      "/ariac/sensors/agv1_camera/image", rclcpp::SensorDataQoS(),
-      std::bind(&FloorRobot::agv1_camera_cb, this, std::placeholders::_1),
-      options);
-  // subscription to /ariac/sensors/agv2_camera/image
-  agv2_camera_sub_ = this->create_subscription<
-      ariac_msgs::msg::AdvancedLogicalCameraImage>(
-      "/ariac/sensors/agv2_camera/image", rclcpp::SensorDataQoS(),
-      std::bind(&FloorRobot::agv2_camera_cb, this, std::placeholders::_1),
-      options);
-  // subscription to /ariac/sensors/agv3_camera/image
-  agv3_camera_sub_ = this->create_subscription<
-      ariac_msgs::msg::AdvancedLogicalCameraImage>(
-      "/ariac/sensors/agv3_camera/image", rclcpp::SensorDataQoS(),
-      std::bind(&FloorRobot::agv3_camera_cb, this, std::placeholders::_1),
-      options);
-  // subscription to /ariac/sensors/agv4_camera/image
-  agv4_camera_sub_ = this->create_subscription<
-      ariac_msgs::msg::AdvancedLogicalCameraImage>(
-      "/ariac/sensors/agv4_camera/image", rclcpp::SensorDataQoS(),
-      std::bind(&FloorRobot::agv4_camera_cb, this, std::placeholders::_1),
-      options);
   // subscription to /ariac/floor_robot_gripper/state
   floor_gripper_state_sub_ = this->create_subscription<ariac_msgs::msg::VacuumGripperState>(
       "/ariac/floor_robot_gripper_state",
@@ -1031,7 +1007,7 @@ bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick , std::string 
 }
 
 //=============================================//
-bool FloorRobot::place_part_in_tray(std::string id, int agv_num, int quadrant, ariac_msgs::msg::Part part_to_pick, std::string part_nm)
+bool FloorRobot::place_part_in_tray(std::string id, int agv_num, int quadrant, std::string part_nm)
 { bool faulty_part = false;
 
   bool moved_to_agv = false ; 
@@ -1068,20 +1044,6 @@ bool FloorRobot::place_part_in_tray(std::string id, int agv_num, int quadrant, a
       geometry_msgs::msg::Quaternion());
 
   auto part_drop_pose = Utils::multiply_poses(agv_tray_pose, part_drop_offset);
-  if (!floor_gripper_state_.attached)
-  {
-    RCLCPP_ERROR(get_logger(), "No part attached");
-    floor_robot_.detachObject(part_name);
-    remove_single_model_from_planning_scene(part_name);
-    set_gripper_state(false);
-    // part_attached = pick_part_from_agv(part_to_pick, agv_num, part_drop_pose, part_nm);
-    // if(!part_attached){
-    part_attached = false;
-    return false;
-    // }
-  }
-  
-  part_drop_pose_global_ = part_drop_pose;
   std::vector<geometry_msgs::msg::Pose> waypoints;
 
   waypoints.push_back(Utils::build_pose(
@@ -1095,13 +1057,6 @@ bool FloorRobot::place_part_in_tray(std::string id, int agv_num, int quadrant, a
 
   move_through_waypoints(waypoints, 0.3, 0.3);
 
-  if (!floor_gripper_state_.attached)
-  {
-    RCLCPP_ERROR(get_logger(), "No part attached");
-    remove_single_model_from_planning_scene(part_name);
-    // pick_part_from_agv(part_to_pick, agv_num, part_drop_pose, part_nm);
-    return false;
-  }
   auto request = std::make_shared<ariac_msgs::srv::PerformQualityCheck::Request>();
   request->order_id = id;
   auto result = quality_checker_->async_send_request(request);
@@ -1139,106 +1094,6 @@ bool FloorRobot::place_part_in_tray(std::string id, int agv_num, int quadrant, a
   waypoints.clear();
   return true;
  }
-}
-
-bool FloorRobot::pick_part_from_agv(ariac_msgs::msg::Part part_to_pick, int agv_num, geometry_msgs::msg::Pose part_drop_pose, std::string part_nm) {
-  geometry_msgs::msg::Pose part_pose;
-  bool found_part = false;
-  RCLCPP_INFO(get_logger(), "Inside pick part from agv");
-  if(agv_num == 1){
-    // Check left bins
-    for (auto part : agv1_parts_)
-    {
-      if (part.part.type == part_to_pick.type && part.part.color == part_to_pick.color)
-      {
-        part_pose = Utils::multiply_poses(agv1_camera_pose_, part.pose);
-        found_part = true;
-        break;
-      }
-    }
-  }
-  if(agv_num == 2){
-    // bool found_part = false;
-    // Check left bins
-    for (auto part : agv2_parts_)
-    {
-      if (part.part.type == part_to_pick.type && part.part.color == part_to_pick.color)
-      {
-        part_pose = Utils::multiply_poses(agv2_camera_pose_, part.pose);
-        found_part = true;
-        break;
-      }
-    }
-  }
-  if(agv_num == 3){
-    // bool found_part = false;
-    // Check left bins
-    for (auto part : agv3_parts_)
-    {
-      if (part.part.type == part_to_pick.type && part.part.color == part_to_pick.color)
-      {
-        part_pose = Utils::multiply_poses(agv3_camera_pose_, part.pose);
-        found_part = true;
-        break;
-      }
-    }
-  }
-  if(agv_num == 4){
-    // bool found_part = false;
-    // Check left bins
-    for (auto part : agv4_parts_)
-    {
-      if (part.part.type == part_to_pick.type && part.part.color == part_to_pick.color)
-      {
-        part_pose = Utils::multiply_poses(agv4_camera_pose_, part.pose);
-        found_part = true;
-        break;
-      }
-    }
-  }
-  if(found_part){
-  RCLCPP_INFO(get_logger(), "Part Found!!!");
-  RCLCPP_INFO_STREAM(get_logger(), "Part pose in world frame "
-                                       << part_pose.position.x
-                                       << " "
-                                       << part_pose.position.y
-                                       << " "
-                                       << part_pose.position.z);
-  double part_rotation = Utils::get_yaw_from_pose(part_pose);
-  std::vector<geometry_msgs::msg::Pose> waypoints;
-  waypoints.push_back(Utils::build_pose(
-      part_pose.position.x, part_pose.position.y, part_pose.position.z + 0.5,
-      set_robot_orientation(part_rotation)));
-
-  waypoints.push_back(Utils::build_pose(
-      part_pose.position.x, part_pose.position.y,
-      part_pose.position.z + part_heights_[part_to_pick.type] + pick_offset_,
-      set_robot_orientation(part_rotation)));
-
-  move_through_waypoints(waypoints, 0.3, 0.3);
-
-  set_gripper_state(true);
-
-  wait_for_attach_completion(20.0);
-  add_single_model_to_planning_scene(part_nm, part_types_[part_to_pick.type] + ".stl", part_pose);
-  floor_robot_.attachObject(part_nm);
-  waypoints.clear();
-
-  waypoints.push_back(Utils::build_pose(
-      part_drop_pose.position.x, part_drop_pose.position.y,
-      part_drop_pose.position.z + 0.3, set_robot_orientation(0)));
-
-  waypoints.push_back(Utils::build_pose(
-      part_drop_pose.position.x, part_drop_pose.position.y,
-
-      part_drop_pose.position.z + part_heights_[floor_robot_attached_part_.type] + drop_height_,
-      set_robot_orientation(0)));
-
-  move_through_waypoints(waypoints, 0.3, 0.3);
-  return true;
-  }
-  RCLCPP_INFO(get_logger(), "Part Not Found!!!");
-  return false;
 }
 
 // //=============================================//
@@ -1349,7 +1204,7 @@ bool FloorRobot::complete_kitting_task(order_object &order)
         std::string part_name = part_colors_[kit_part.part.color] + "_" + part_types_[kit_part.part.type]+"_"+std::to_string(planning_scene_part_cnt_);
         part_picked = pick_bin_part(kit_part.part ,part_name);
         if (part_picked){
-          part_placed = place_part_in_tray(order.order.id,order.order.kitting_task.agv_number, kit_part.quadrant, kit_part.part, part_name);
+          part_placed = place_part_in_tray(order.order.id,order.order.kitting_task.agv_number, kit_part.quadrant, part_name);
           if(part_placed){
             RCLCPP_INFO(get_logger(), "place part on tray returned true"); 
             it = low_order_parts_.erase(it);  
@@ -1381,7 +1236,7 @@ bool FloorRobot::complete_kitting_task(order_object &order)
         std::string part_name = part_colors_[kit_part.part.color] + "_" + part_types_[kit_part.part.type] + "_" + std::to_string(planning_scene_part_cnt_);
         part_picked = pick_bin_part(kit_part.part, part_name);
         if (part_picked) {
-            part_placed = place_part_in_tray(order.order.id, order.order.kitting_task.agv_number, kit_part.quadrant, kit_part.part, part_name);
+            part_placed = place_part_in_tray(order.order.id, order.order.kitting_task.agv_number, kit_part.quadrant, part_name);
             if (part_placed) {
                 RCLCPP_INFO(get_logger(), "place part on tray returned true");   
                 ++it;
@@ -1452,4 +1307,3 @@ bool FloorRobot::complete_kitting_task(order_object &order)
   }
   return true;
 }
-
