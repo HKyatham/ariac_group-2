@@ -15,7 +15,7 @@ ros2 launch ariac_gazebo ariac.launch.py trial_name:=rwax_spring2024
 ```
 ros2 launch rwax_group_2 rwax.launch.py
 ```
-##PYTHON LIBRARIES
+###PYTHON LIBRARIES
 YOLO V8 MODEL
 ```
 pip install ultralytics
