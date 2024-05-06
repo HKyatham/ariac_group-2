@@ -640,7 +640,7 @@ private:
   
   //! Joint value targets for kit tray station 2
   std::map<std::string, double> floor_kts2_js_
-      = { { "linear_actuator_joint", -4.5},
+      = { { "linear_actuator_joint", -4.0},
           { "floor_shoulder_pan_joint", -1.57 },
           { "floor_shoulder_lift_joint", -1.57 },
           { "floor_elbow_joint", 1.57 },
