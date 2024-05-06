@@ -1061,26 +1061,7 @@ bool FloorRobot::place_part_in_tray(std::string id, int agv_num, int quadrant, s
     part_drop_pose.position.x, part_drop_pose.position.y,
     part_drop_pose.position.z + 0.3, set_robot_orientation(0)));
     move_through_waypoints(waypoints, 0.2, 0.1);
-    // std::string disposal_bin;
-    // if (part_drop_pose.position.y > 0.0)
-    // {
-    //   disposal_bin = "disposal_bin1";
-    // }
-    // else
-    // {
-    //   disposal_bin = "disposal_bin2";
-    // }
-
-    // // Move floor robot to the corresponding disposal bin
-    // if (disposal_bin == "disposal_bin1")
-    // {
-    //   floor_robot_.setJointValueTarget(disposal_bin_1_js_);
-    // }
-    // else
-    // {
-    //   floor_robot_.setJointValueTarget(disposal_bin_2_js_);
-    // }
-    floor_robot_.setJointValueTarget(disposal_bin_1_js_);   // comment this if (if-else) is uncommented.
+    floor_robot_.setJointValueTarget(disposal_bin_1_js_);   
     move_to_target();
     set_gripper_state(false);
     floor_robot_.detachObject(part_name);

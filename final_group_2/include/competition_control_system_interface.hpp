@@ -249,27 +249,6 @@ private:
    */
   bool pick_and_place_tray (int tray_id, int agv_num, std::string tr_nm);
   //-----------------------------//
-//   /**
-//    * @brief Pick a tray from the kit tray station and place it on the AGV
-//    *
-//    * @param[in] tray_id ID of the tray to pick
-//    * \parblock
-//    *  Possible value is in the range [0,9]
-//    * \endparblock
-//    * @param[in] agv_num Number of the AGV to place the tray on
-//    * \parblock
-//    *  Possible value is in the range [1,4]
-//    * \endparblock
-//    * * @param[in] tr_nm Unique name for tray
-//    * \parblock
-//    *  String type
-//    * \endparblock
-//    * @return true Successfully picked and placed the tray
-//    * @return false Failed to pick and place the tray
-//    */
-//   bool pick_dispose_faulty_part (ariac_msgs::msg::Part part_to_pick,std::string tr_nm);
-  //-----------------------------//
-
   /**
    * @brief Pick a part from the bin
    *
@@ -644,17 +623,6 @@ private:
           { "floor_wrist_1_joint", -0.65 },
           { "floor_wrist_2_joint", 0.0 },
           { "floor_wrist_3_joint", 0.0 } };
-
-  //! Joint value targets for disposal_bin_2
-  std::map<std::string, double> disposal_bin_2_js_
-      = { { "linear_actuator_joint", 4.5},
-          { "floor_shoulder_pan_joint", -0.05 },
-          { "floor_shoulder_lift_joint", -1.50},
-          { "floor_elbow_joint", -2.04},
-          { "floor_wrist_1_joint", -2.96},
-          { "floor_wrist_2_joint", 0.0 },
-          { "floor_wrist_3_joint", 0.0 } };
-  
   
   //! Joint value targets for kit tray station 2
   std::map<std::string, double> floor_kts2_js_
