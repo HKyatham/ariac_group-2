@@ -596,24 +596,6 @@ void FloorRobot::add_models_to_planning_scene()
 
   add_single_model_to_planning_scene("kts2_table", "kit_tray_table.stl",
                                      kts2_table_pose);
-
-
-  // // Add agv
-  // std::map<std::string, std::pair<double, double>> agv_positions = {{"agv1", std::pair<double, double>(-2.27, 4.8)},
-  //                                                                   {"agv2", std::pair<double, double>(-2.27, 1.2)},
-  //                                                                   {"agv3", std::pair<double, double>(-2.27, -1.2)},
-  //                                                                   {"agv4", std::pair<double, double>(-2.27, -4.8)},};
-
-  // geometry_msgs::msg::Pose agv_pose;
-  // for (auto const &agv : agv_positions)
-  // {
-  //   agv_pose.position.x = agv.second.first;
-  //   agv_pose.position.y = agv.second.second;
-  //   agv_pose.position.z = 0;
-  //   agv_pose.orientation = Utils::get_quaternion_from_euler(0, 0, 3.14159);
-
-  //   add_single_model_to_planning_scene(agv.first, "agv.stl", agv_pose);
-  // }
 }
 
 //=============================================//
@@ -1015,9 +997,7 @@ bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick , std::string 
       part_name, part_types_[part_to_pick.type] + ".stl", part_pose);
   floor_robot_.attachObject(part_name);
   floor_robot_attached_part_ = part_to_pick;
-  RCLCPP_INFO(get_logger(), "timer for wait started");
-  // std::this_thread::sleep_for(std::chrono::seconds(20));
-  RCLCPP_INFO(get_logger(), "timer for wait ended");
+  rclcpp::sleep_for(std::chrono::seconds(20));
 
   // Move up slightly
   waypoints.clear();
@@ -1036,7 +1016,6 @@ bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick , std::string 
     {
        floor_robot_.setJointValueTarget("floor_shoulder_pan_joint", -3.14);
     }
-  // floor_robot_.setJointValueTarget("floor_shoulder_pan_joint", 3.14);
   move_to_target();
   if (!floor_gripper_state_.attached)
   {
@@ -1068,8 +1047,19 @@ bool FloorRobot::place_part_in_tray(std::string id, int agv_num, int quadrant, a
     RCLCPP_INFO(get_logger(), "Moving floor robot to agv");
     moved_to_agv = move_to_target();
   }
+
   floor_robot_.setJointValueTarget("floor_shoulder_pan_joint", 0);
   move_to_target();
+  if (!floor_gripper_state_.attached)
+  {
+    RCLCPP_ERROR(get_logger(), "No part attached");
+    floor_robot_.detachObject(part_name);
+    remove_single_model_from_planning_scene(part_name);
+    set_gripper_state(false);
+    part_attached = false;
+    return false;
+  }
+  
   // Determine target pose for part based on agv_tray pose
   auto agv_tray_pose = get_pose_in_world_frame("agv" + std::to_string(agv_num) + "_tray");
 
@@ -1122,7 +1112,6 @@ bool FloorRobot::place_part_in_tray(std::string id, int agv_num, int quadrant, a
         RCLCPP_INFO(get_logger(), "Faulty part detected");
         faulty_part = true;
     }
-  
   if(faulty_part){
     RCLCPP_INFO(get_logger(), "Faulty part detected - initiating disposal");
     waypoints.clear();
@@ -1141,7 +1130,7 @@ bool FloorRobot::place_part_in_tray(std::string id, int agv_num, int quadrant, a
   // Drop part in quadrant
   set_gripper_state(false);
   floor_robot_.detachObject(part_name);
-  RCLCPP_INFO(get_logger(), "part dropped");
+  RCLCPP_INFO(get_logger(), "part dropped on tray");
   waypoints.clear();
   waypoints.push_back(Utils::build_pose(
       part_drop_pose.position.x, part_drop_pose.position.y,
@@ -1260,11 +1249,9 @@ bool FloorRobot::complete_orders() {
   bool success = true; 
   auto current_order = low_orders_.front();
   if (low_order_parts_.empty()) {
-      RCLCPP_INFO(get_logger(), "low_order_parts_ is empty");
       for (auto part : current_order.order.kitting_task.parts){
         low_order_parts_.push_back(part);
       }
-      RCLCPP_INFO(get_logger(), "complete order 1, Number of low order parts: %zu", low_order_parts_.size());
     }
   
   if (!high_orders_.empty()){
@@ -1281,7 +1268,6 @@ bool FloorRobot::complete_orders() {
       current_order = high_orders_.front();
     }
     if (current_order.order.type == ariac_msgs::msg::Order::KITTING) {
-        RCLCPP_INFO(get_logger(), "Complete kitting task called.....................");
         complete_kitting_task(current_order);
     } else {
         RCLCPP_INFO(get_logger(), "Ignoring non-kitting tasks.");
@@ -1300,11 +1286,9 @@ bool FloorRobot::complete_orders() {
           else{
             current_order = low_orders_.front();
             if (low_order_parts_.empty() && lower_order_flag == true) {
-              RCLCPP_INFO(get_logger(), "low_order_parts_ is empty");
               for (auto part : current_order.order.kitting_task.parts){
                 low_order_parts_.push_back(part);
               }
-            RCLCPP_INFO(get_logger(), "Inside comple order -2 , Number of low order parts: %zu", low_order_parts_.size());
             }
           }
       }
@@ -1358,7 +1342,6 @@ bool FloorRobot::complete_kitting_task(order_object &order)
       lower_order_flag = false;
       for (auto it = low_order_parts_.begin(); it != low_order_parts_.end();)
       { 
-      RCLCPP_INFO(get_logger(), "Inside if !order.part for loop , Number of low order parts: %zu", low_order_parts_.size());
         auto& kit_part = *it;
         bool part_picked = false;
         bool part_placed = false;
@@ -1370,20 +1353,20 @@ bool FloorRobot::complete_kitting_task(order_object &order)
           if(part_placed){
             RCLCPP_INFO(get_logger(), "place part on tray returned true"); 
             it = low_order_parts_.erase(it);  
-            RCLCPP_INFO(get_logger(), "End of low_order_parts_ list"); 
-              
-          
           }
           else {
             RCLCPP_INFO(get_logger(), "place part on tray returned false");
-            // continue;
           }
         }
         else{
           RCLCPP_INFO(get_logger(), "part pick failed");
           if ((it != low_order_parts_.end()) && part_attached) {
                     ++it;
-                }   
+                }
+          else if(!found_part){
+            RCLCPP_INFO(get_logger(), "part not found going to next iteration");
+            ++it;
+          }    
         }
       }
     RCLCPP_INFO(get_logger(), "Outside  !order.part for loop, Number of low order parts: %zu", low_order_parts_.size());
@@ -1412,6 +1395,10 @@ bool FloorRobot::complete_kitting_task(order_object &order)
             {
             ++it;
             }
+            else if(!found_part){
+            RCLCPP_INFO(get_logger(), "part not found going to next iteration");
+            ++it;
+          } 
         }
     }
     }
@@ -1465,5 +1452,4 @@ bool FloorRobot::complete_kitting_task(order_object &order)
   }
   return true;
 }
-
 
