@@ -14,6 +14,7 @@ sudo rosdep init
 rosdep update --include-eol-distros
 rosdep install --from-paths src -y --ignore-src
 ```
+### Note :  Please do colcon build of sister packages submited too.
 **************************************
 ### Package Details
 The zip folder contains two packages
