@@ -1,27 +1,42 @@
 # ariac_group-2
-
-## Team Members
+*****Team Members*****
 1. Aryan Mishra- 120106521
 2. Gautam Sreenarayanan Nair - 119543092
 3. Hitesh Kyatham - 120275364
 4. Keyur Borad - 120426049
 5. Sarin Ann Mathew - 119390382
 **************************************
-### Instructions to run
+******Installing dependencies*********
+```
+sudo apt install python3-rosdep
+sudo apt install openjdk-17-jdk
+sudo rosdep init
+rosdep update --include-eol-distros
+rosdep install --from-paths src -y --ignore-src
+```
+**************************************
+******Instructions to run*************
+1. Run the following command in terminal-1
+```
+ros2 launch ariac_gazebo ariac.launch.py trial_name:=rwax_spring2024
+```
+3. Run the following command in terminal-2
+```
+ros2 launch rwax_group_2 rwax.launch.py
+```
+**************************************
+***Python Libraries*******************
 
-***1. Run the following command in terminal-1***
+YOLO V8 MODEL
 ```
-ros2 launch ariac_gazebo ariac.launch.py competitor_pkg:=final_group_2 sensor_config:=my_sensors trial_name:=final_spring2024
+pip install ultralytics
 ```
-
-***2. Run the following command in terminal-2 (after terminal-1 logs "You can now start the competition!")***
+OPEN CV - CONTRIB
 ```
-ros2 launch ariac_moveit_config ariac_robots_moveit.launch.py
+pip install opencv-contrib-python
 ```
-
-***3. Run the following command in terminal-3 (after move it is launched properly)*** 
+OPEN CV
 ```
-ros2 launch final_group_2 final.launch.py
+pip install opencv-python
 ```
-
    
