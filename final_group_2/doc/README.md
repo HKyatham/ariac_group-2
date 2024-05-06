@@ -15,14 +15,24 @@ rosdep update --include-eol-distros
 rosdep install --from-paths src -y --ignore-src
 ```
 **************************************
+### Package Details
+The zip folder contains two packages
+    - robot_commander_msgs
+    - final_group_2
+NOTE: Remember to colcon build both the packages.
+**************************************
+
 ### Instructions to run
 #### 1. Run the following command in terminal-1
+#### 1. Run the following command in terminal-1
 ```
-ros2 launch ariac_gazebo ariac.launch.py trial_name:=final_spring2024
+ros2 launch ariac_gazebo ariac.launch.py competitor_pkg:=final_group_2 sensor_config:=my_sensors trial_name:=final_spring2024
 ```
+Modify the trial_name based on the  competition setup and challenges.
+
 #### 2. Run the following command in terminal-2 (after terminal-1 logs "You can now start the competition!")
 ```
-ros2 launch ariac_moveit_config ariac_robots_moveit.launch.py
+ros2 launch ariac_moveit_config ariac_robots_moveit.launch.py rviz:=true
 ```
 #### 3. Run the following command in terminal-3 (after move-it is launched properly)
 ```
