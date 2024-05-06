@@ -359,57 +359,57 @@ void FloorRobot::right_bins_camera_cb(
   right_bins_camera_pose_ = msg->sensor_pose;
 }
 //==============================================//
-// void FloorRobot::agv1_camera_cb(
-//     const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg)
-// {
-//   if (!agv1_camera_received_data)
-//   {
-//     RCLCPP_INFO(get_logger(), "Received data from agv1 camera");
-//     agv1_camera_received_data = true;
-//   }
+void FloorRobot::agv1_camera_cb(
+    const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg)
+{
+  if (!agv1_camera_received_data)
+  {
+    RCLCPP_INFO(get_logger(), "Received data from agv1 camera");
+    agv1_camera_received_data = true;
+  }
 
-//   agv1_parts_ = msg->part_poses;
-//   agv1_camera_pose_ = msg->sensor_pose;
-// }
-// //=============================================//
-// void FloorRobot::agv2_camera_cb(
-//     const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg)
-// {
-//   if (!agv2_camera_received_data)
-//   {
-//     RCLCPP_INFO(get_logger(), "Received data from agv2 camera");
-//     agv2_camera_received_data = true;
-//   }
+  agv1_parts_ = msg->part_poses;
+  agv1_camera_pose_ = msg->sensor_pose;
+}
+//=============================================//
+void FloorRobot::agv2_camera_cb(
+    const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg)
+{
+  if (!agv2_camera_received_data)
+  {
+    RCLCPP_INFO(get_logger(), "Received data from agv2 camera");
+    agv2_camera_received_data = true;
+  }
 
-//   agv2_parts_ = msg->part_poses;
-//   agv2_camera_pose_ = msg->sensor_pose;
-// }
-// //=============================================//
-// void FloorRobot::agv3_camera_cb(
-//     const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg)
-// {
-//   if (!agv3_camera_received_data)
-//   {
-//     RCLCPP_INFO(get_logger(), "Received data from agv3 camera");
-//     agv3_camera_received_data = true;
-//   }
+  agv2_parts_ = msg->part_poses;
+  agv2_camera_pose_ = msg->sensor_pose;
+}
+//=============================================//
+void FloorRobot::agv3_camera_cb(
+    const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg)
+{
+  if (!agv3_camera_received_data)
+  {
+    RCLCPP_INFO(get_logger(), "Received data from agv3 camera");
+    agv3_camera_received_data = true;
+  }
 
-//   agv3_parts_ = msg->part_poses;
-//   agv3_camera_pose_ = msg->sensor_pose;
-// }
-// //=============================================//
-// void FloorRobot::agv4_camera_cb(
-//     const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg)
-// {
-//   if (!agv4_camera_received_data)
-//   {
-//     RCLCPP_INFO(get_logger(), "Received data from agv4 camera");
-//     agv4_camera_received_data = true;
-//   }
+  agv3_parts_ = msg->part_poses;
+  agv3_camera_pose_ = msg->sensor_pose;
+}
+//=============================================//
+void FloorRobot::agv4_camera_cb(
+    const ariac_msgs::msg::AdvancedLogicalCameraImage::ConstSharedPtr msg)
+{
+  if (!agv4_camera_received_data)
+  {
+    RCLCPP_INFO(get_logger(), "Received data from agv4 camera");
+    agv4_camera_received_data = true;
+  }
 
-//   agv4_parts_ = msg->part_poses;
-//   agv4_camera_pose_ = msg->sensor_pose;
-// }
+  agv4_parts_ = msg->part_poses;
+  agv4_camera_pose_ = msg->sensor_pose;
+}
 //=============================================//
 void FloorRobot::floor_gripper_state_cb(
     const ariac_msgs::msg::VacuumGripperState::ConstSharedPtr msg)
@@ -572,6 +572,24 @@ void FloorRobot::add_models_to_planning_scene()
 
   add_single_model_to_planning_scene("kts2_table", "kit_tray_table.stl",
                                      kts2_table_pose);
+
+
+  // // Add agv
+  // std::map<std::string, std::pair<double, double>> agv_positions = {{"agv1", std::pair<double, double>(-2.27, 4.8)},
+  //                                                                   {"agv2", std::pair<double, double>(-2.27, 1.2)},
+  //                                                                   {"agv3", std::pair<double, double>(-2.27, -1.2)},
+  //                                                                   {"agv4", std::pair<double, double>(-2.27, -4.8)},};
+
+  // geometry_msgs::msg::Pose agv_pose;
+  // for (auto const &agv : agv_positions)
+  // {
+  //   agv_pose.position.x = agv.second.first;
+  //   agv_pose.position.y = agv.second.second;
+  //   agv_pose.position.z = 0;
+  //   agv_pose.orientation = Utils::get_quaternion_from_euler(0, 0, 3.14159);
+
+  //   add_single_model_to_planning_scene(agv.first, "agv.stl", agv_pose);
+  // }
 }
 
 //=============================================//
@@ -974,7 +992,7 @@ bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick , std::string 
   floor_robot_.attachObject(part_name);
   floor_robot_attached_part_ = part_to_pick;
   RCLCPP_INFO(get_logger(), "timer for wait started");
-  std::this_thread::sleep_for(std::chrono::seconds(20));
+  // std::this_thread::sleep_for(std::chrono::seconds(20));
   RCLCPP_INFO(get_logger(), "timer for wait ended");
 
   // Move up slightly
@@ -997,19 +1015,26 @@ bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick , std::string 
   //   }
   floor_robot_.setJointValueTarget("floor_shoulder_pan_joint", 3.14);
   move_to_target();
+  if (!floor_gripper_state_.attached)
+  {
+    RCLCPP_ERROR(get_logger(), "No part attached");
+    floor_robot_.detachObject(part_name);
+    remove_single_model_from_planning_scene(part_name);
+    set_gripper_state(false);
+    part_attached = false;
+    return false;
+  }
+  part_attached = true;
   return true;
 }
 
 //=============================================//
 bool FloorRobot::place_part_in_tray(std::string id, int agv_num, int quadrant, std::string part_nm)
 { bool faulty_part = false;
-  if (!floor_gripper_state_.attached)
-  {
-    RCLCPP_ERROR(get_logger(), "No part attached");
-    return false;
-  }
+
   bool moved_to_agv = false ; 
   int moved_to_agv_counter = 0;
+  std::string  part_name = part_nm;
   // Move to agv
   floor_robot_.setJointValueTarget(
       "linear_actuator_joint",
@@ -1020,9 +1045,18 @@ bool FloorRobot::place_part_in_tray(std::string id, int agv_num, int quadrant, s
     RCLCPP_INFO(get_logger(), "Moving floor robot to agv");
     moved_to_agv = move_to_target();
   }
+   if (!floor_gripper_state_.attached)
+  {
+    RCLCPP_ERROR(get_logger(), "No part attached");
+    floor_robot_.detachObject(part_name);
+    remove_single_model_from_planning_scene(part_name);
+    set_gripper_state(false);
+    part_attached = false;
+    return false;
+  }
   floor_robot_.setJointValueTarget("floor_shoulder_pan_joint", 0);
   move_to_target();
-  std::string  part_name = part_nm;
+  
   // Determine target pose for part based on agv_tray pose
   auto agv_tray_pose = get_pose_in_world_frame("agv" + std::to_string(agv_num) + "_tray");
 
@@ -1055,6 +1089,20 @@ bool FloorRobot::place_part_in_tray(std::string id, int agv_num, int quadrant, s
         RCLCPP_INFO(get_logger(), "Faulty part detected");
         faulty_part = true;
     }
+  // if (!floor_gripper_state_.attached)
+  // {
+  //   RCLCPP_ERROR(get_logger(), "No part attached");
+  //   return false;
+  //   auto request = std::make_shared<ariac_msgs::srv::PerformQualityCheck::Request>();
+  //   request->order_id = id;
+  //   auto result = quality_checker_->async_send_request(request);
+  //   result.wait();
+  //   auto response = result.get();
+  //   if(response->quadrant1.incorrect_part_type || response->quadrant1.incorrect_part_color )
+  //   {
+      
+  //   }
+  // }
   if(faulty_part){
     RCLCPP_INFO(get_logger(), "Faulty part detected - initiating disposal");
     waypoints.clear();
@@ -1221,26 +1269,20 @@ bool FloorRobot::complete_kitting_task(order_object &order)
           if(part_placed){
             RCLCPP_INFO(get_logger(), "place part on tray returned true"); 
             it = low_order_parts_.erase(it);  
-            //  if (it != low_order_parts_.end()) {
-            //         ++it;
-            //     } 
             RCLCPP_INFO(get_logger(), "End of low_order_parts_ list"); 
               
           
           }
           else {
             RCLCPP_INFO(get_logger(), "place part on tray returned false");
-            continue;
+            // continue;
           }
         }
         else{
           RCLCPP_INFO(get_logger(), "part pick failed");
-          if (it != low_order_parts_.end()) {
+          if ((it != low_order_parts_.end()) && part_attached) {
                     ++it;
-                }
-                 else{
-                break;
-              }
+                }   
         }
       }
     RCLCPP_INFO(get_logger(), "Outside  !order.part for loop, Number of low order parts: %zu", low_order_parts_.size());
@@ -1265,8 +1307,10 @@ bool FloorRobot::complete_kitting_task(order_object &order)
             }
         } else {
             RCLCPP_INFO(get_logger(), "part pick failed");
+            if((it != order.order.kitting_task.parts.end()) && part_attached)
+            {
             ++it;
-            continue;
+            }
         }
     }
     }

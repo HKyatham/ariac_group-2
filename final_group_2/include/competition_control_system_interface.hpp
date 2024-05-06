@@ -447,6 +447,18 @@ private:
   //! Subscriber for "/ariac/sensors/right_bins_camera/image" topic
   rclcpp::Subscription<ariac_msgs::msg::AdvancedLogicalCameraImage>::SharedPtr
       right_bins_camera_sub_;
+  //! Subscriber for "/ariac/sensors/right_bins_camera/image" topic
+  rclcpp::Subscription<ariac_msgs::msg::AdvancedLogicalCameraImage>::SharedPtr
+      agv1_camera_sub_;
+  //! Subscriber for "/ariac/sensors/right_bins_camera/image" topic
+  rclcpp::Subscription<ariac_msgs::msg::AdvancedLogicalCameraImage>::SharedPtr
+      agv2_camera_sub_;
+  //! Subscriber for "/ariac/sensors/right_bins_camera/image" topic
+  rclcpp::Subscription<ariac_msgs::msg::AdvancedLogicalCameraImage>::SharedPtr
+      agv3_camera_sub_;
+  //! Subscriber for "/ariac/sensors/right_bins_camera/image" topic
+  rclcpp::Subscription<ariac_msgs::msg::AdvancedLogicalCameraImage>::SharedPtr
+      agv4_camera_sub_;
   // Orders List
   // competitor_interfaces::msg::FloorRobotTask current_order_;
   // std::vector<competitor_interfaces::msg::FloorRobotTask> orders_;
@@ -478,14 +490,14 @@ private:
   geometry_msgs::msg::Pose left_bins_camera_pose_;
   //! Pose of the camera "right_bins_camera" in the world frame
   geometry_msgs::msg::Pose right_bins_camera_pose_;
-//   //! Pose of the camera "agv1_camera" in the world frame
-//   geometry_msgs::msg::Pose agv1_camera_pose_;
-//   //! Pose of the camera "agv2_camera" in the world frame
-//   geometry_msgs::msg::Pose agv2_camera_pose_;
-//   //! Pose of the camera "agv3_camera" in the world frame
-//   geometry_msgs::msg::Pose agv3_camera_pose_;
-//   //! Pose of the camera "agv4_camera" in the world frame
-//   geometry_msgs::msg::Pose agv4_camera_pose_;
+  //! Pose of the camera "agv1_camera" in the world frame
+  geometry_msgs::msg::Pose agv1_camera_pose_;
+  //! Pose of the camera "agv2_camera" in the world frame
+  geometry_msgs::msg::Pose agv2_camera_pose_;
+  //! Pose of the camera "agv3_camera" in the world frame
+  geometry_msgs::msg::Pose agv3_camera_pose_;
+  //! Pose of the camera "agv4_camera" in the world frame
+  geometry_msgs::msg::Pose agv4_camera_pose_;
   //! Pose of trays found by "kts1_camera"
   std::vector<ariac_msgs::msg::KitTrayPose> kts1_trays_;
   //! Pose of trays found by "kts2_camera"
@@ -494,14 +506,14 @@ private:
   std::vector<ariac_msgs::msg::PartPose> left_bins_parts_;
   //! Pose of parts found by "right_bins_camera"
   std::vector<ariac_msgs::msg::PartPose> right_bins_parts_;
-//   //! Pose of parts found by "agv1_camera"
-//   std::vector<ariac_msgs::msg::PartPose> agv1_parts_;
-//   //! Pose of parts found by "agv2_camera"
-//   std::vector<ariac_msgs::msg::PartPose> agv2_parts_;
-//   //! Pose of parts found by "agv3_camera"
-//   std::vector<ariac_msgs::msg::PartPose> agv3_parts_;
-//   //! Pose of parts found by "agv4_camera"
-//   std::vector<ariac_msgs::msg::PartPose> agv4_parts_;
+  //! Pose of parts found by "agv1_camera"
+  std::vector<ariac_msgs::msg::PartPose> agv1_parts_;
+  //! Pose of parts found by "agv2_camera"
+  std::vector<ariac_msgs::msg::PartPose> agv2_parts_;
+  //! Pose of parts found by "agv3_camera"
+  std::vector<ariac_msgs::msg::PartPose> agv3_parts_;
+  //! Pose of parts found by "agv4_camera"
+  std::vector<ariac_msgs::msg::PartPose> agv4_parts_;
   //! Callback group for the subscriptions
   rclcpp::CallbackGroup::SharedPtr subscription_cbg_;
   //! Specific callback group for the state of the gripper
@@ -517,14 +529,16 @@ private:
   bool right_bins_camera_received_data = false;
    //! Whether "right_bins_camera" has received data or not
   bool lower_order_flag = false;
-//   //! Whether "agv1_camera" has received data or not
-//   bool agv1_camera_received_data = false;
-//   //! Whether "agv2_camera" has received data or not
-//   bool agv2_camera_received_data = false;
-//   //! Whether "agv3_camera" has received data or not
-//   bool agv3_camera_received_data = false;
-//   //! Whether "agv4_camera" has received data or not
-//   bool agv4_camera_received_data = false;
+  //! Whether "agv1_camera" has received data or not
+  bool agv1_camera_received_data = false;
+  //! Whether "agv2_camera" has received data or not
+  bool agv2_camera_received_data = false;
+  //! Whether "agv3_camera" has received data or not
+  bool agv3_camera_received_data = false;
+  //! Whether "agv4_camera" has received data or not
+  bool agv4_camera_received_data = false;
+  //! Whether part has been picked or not
+  bool part_attached = false;
 
   
   //! Callback for "/moveit_demo/demo" topic
