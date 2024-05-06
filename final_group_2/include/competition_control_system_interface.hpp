@@ -516,8 +516,10 @@ private:
   bool agv3_camera_received_data = false;
   //! Whether "agv4_camera" has received data or not
   bool agv4_camera_received_data = false;
-  //! Whether part has been picked or not
+  //! Whether part is attatched or not
   bool part_attached = false;
+  //! Whether part found or not
+  bool found_part = false;
 
   
   //! Callback for "/moveit_demo/demo" topic
