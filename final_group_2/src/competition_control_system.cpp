@@ -986,16 +986,15 @@ bool FloorRobot::pick_bin_part(ariac_msgs::msg::Part part_to_pick , std::string 
   move_through_waypoints(waypoints, 0.3, 0.3);
 
    // Rotate to other direction
-
-  //  if (bin_side == "left_bins")
-  //   {
-  //      floor_robot_.setJointValueTarget("floor_shoulder_pan_joint", 3.14); 
-  //   }
-  //   else
-  //   {
-  //      floor_robot_.setJointValueTarget("floor_shoulder_pan_joint", 3.14);
-  //   }
-  floor_robot_.setJointValueTarget("floor_shoulder_pan_joint", 3.14);
+   if (bin_side == "left_bins")
+    {
+       floor_robot_.setJointValueTarget("floor_shoulder_pan_joint", 3.14); 
+    }
+    else
+    {
+       floor_robot_.setJointValueTarget("floor_shoulder_pan_joint", -3.14);
+    }
+  // floor_robot_.setJointValueTarget("floor_shoulder_pan_joint", 3.14);
   move_to_target();
   return true;
 }
@@ -1063,7 +1062,7 @@ bool FloorRobot::place_part_in_tray(std::string id, int agv_num, int quadrant, s
     part_drop_pose.position.z + 0.3, set_robot_orientation(0)));
     move_through_waypoints(waypoints, 0.2, 0.1);
     // std::string disposal_bin;
-    // if (part_drop_pose.position.y < 0)
+    // if (part_drop_pose.position.y > 0.0)
     // {
     //   disposal_bin = "disposal_bin1";
     // }
@@ -1081,7 +1080,7 @@ bool FloorRobot::place_part_in_tray(std::string id, int agv_num, int quadrant, s
     // {
     //   floor_robot_.setJointValueTarget(disposal_bin_2_js_);
     // }
-    floor_robot_.setJointValueTarget(disposal_bin_1_js_);
+    floor_robot_.setJointValueTarget(disposal_bin_1_js_);   // comment this if (if-else) is uncommented.
     move_to_target();
     set_gripper_state(false);
     floor_robot_.detachObject(part_name);
