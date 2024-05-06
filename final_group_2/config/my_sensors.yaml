@@ -54,36 +54,3 @@ sensors:
     pose:
       xyz: [-1.30, 5.8, 1.5]
       rpy: [pi, pi/2, -pi/2]
-
-#AGV 1 CAMERAS
-  agv1_camera:
-    type: advanced_logical_camera
-    visualize_fov: true
-    pose:
-      xyz: [-2.07, 4.8, 1.8]
-      rpy: [pi, pi/2, -pi/2]
-
-#AGV 2 CAMERAS
-  agv2_camera:
-    type: advanced_logical_camera
-    visualize_fov: true
-    pose:
-      xyz: [-2.07, 1.2, 1.8]
-      rpy: [pi, pi/2, -pi/2]
-
-#AGV 3 CAMERAS
-  agv3_camera:
-    type: advanced_logical_camera
-    visualize_fov: true
-    pose:
-      xyz: [-2.07, -1.2, 1.8]
-      rpy: [pi, pi/2, -pi/2]
-
-#AGV 4 CAMERAS
-  agv4_camera:
-    type: advanced_logical_camera
-    visualize_fov: true
-    pose:
-      xyz: [-2.07, -4.8, 1.8]
-      rpy: [pi, pi/2, -pi/2]
-  

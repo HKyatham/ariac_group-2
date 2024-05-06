@@ -1229,9 +1229,12 @@ bool FloorRobot::complete_kitting_task(order_object &order)
           if(part_placed){
             RCLCPP_INFO(get_logger(), "place part on tray returned true"); 
             it = low_order_parts_.erase(it);  
-             if (it != low_order_parts_.end()) {
-                    ++it;
-                }
+            //  if (it != low_order_parts_.end()) {
+            //         ++it;
+            //     } 
+            RCLCPP_INFO(get_logger(), "End of low_order_parts_ list"); 
+              
+          
           }
           else {
             RCLCPP_INFO(get_logger(), "place part on tray returned false");
@@ -1243,6 +1246,9 @@ bool FloorRobot::complete_kitting_task(order_object &order)
           if (it != low_order_parts_.end()) {
                     ++it;
                 }
+                 else{
+                break;
+              }
         }
       }
     RCLCPP_INFO(get_logger(), "Outside  !order.part for loop, Number of low order parts: %zu", low_order_parts_.size());
